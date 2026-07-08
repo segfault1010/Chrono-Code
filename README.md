@@ -132,4 +132,3 @@ pnpm --filter @chronocode/api build
 
 ---
 
-Built as a portfolio project demonstrating full-stack engineering and AI pipeline design.
