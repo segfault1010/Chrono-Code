@@ -5,23 +5,116 @@
 // ============================================================================
 
 import { Router } from "express";
+import { supabase } from "../lib/db";
+import { validateGithubUrl } from "../services/clone-service";
+import { startIndexingJob } from "../jobs/index-repo-job";
+import { createAppError } from "../middleware/error-handler";
 
 export const repoRoutes = Router();
 
 // POST /api/repos — Start indexing a new repository
-repoRoutes.post("/", (_req, res) => {
-  // TODO: Phase 4 — Implement repository import pipeline
-  res.status(501).json({ error: "Not implemented yet" });
+repoRoutes.post("/", async (req, res, next) => {
+  try {
+    const { url } = req.body;
+    if (!url || typeof url !== "string") {
+      throw createAppError("Missing or invalid 'url' in request body", 400);
+    }
+
+    const { owner, name } = await validateGithubUrl(url);
+
+    // Idempotency: Check if repository already exists
+    const { data: existingRepo, error: findError } = await supabase
+      .from("repositories")
+      .select("*")
+      .eq("github_url", url)
+      .maybeSingle();
+
+    if (findError) throw findError;
+
+    if (existingRepo) {
+      // If it exists, return it. If it failed previously, we might want to restart, 
+      // but for V1 we just return the existing record and user can retry if we add a force flag.
+      // Wait, let's restart if it's 'failed'
+      if (existingRepo.status === "failed") {
+         await supabase.from("repositories").update({ status: "queued" }).eq("id", existingRepo.id);
+         startIndexingJob(existingRepo.id, url);
+         existingRepo.status = "queued";
+      }
+      return res.status(200).json(existingRepo);
+    }
+
+    // Insert new repository
+    const { data: newRepo, error: insertError } = await supabase
+      .from("repositories")
+      .insert({
+        github_url: url,
+        owner,
+        name,
+        status: "queued"
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+
+    // Start background job
+    startIndexingJob(newRepo.id, url);
+
+    res.status(201).json(newRepo);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/repos/:id — Get repository status and metadata
-repoRoutes.get("/:id", (_req, res) => {
-  // TODO: Phase 4 — Implement repository status endpoint
-  res.status(501).json({ error: "Not implemented yet" });
+repoRoutes.get("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const { data: repo, error } = await supabase
+      .from("repositories")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!repo) throw createAppError("Repository not found", 404);
+
+    res.json(repo);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/repos/:id/commits — Paginated commit list
-repoRoutes.get("/:id/commits", (_req, res) => {
-  // TODO: Phase 6 — Implement paginated commit list
-  res.status(501).json({ error: "Not implemented yet" });
+repoRoutes.get("/:id/commits", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page as string || "1", 10);
+    const limit = parseInt(req.query.limit as string || "50", 10);
+    
+    const offset = (page - 1) * limit;
+
+    // Fetch commits ordered by authored_at DESC
+    const { data: commits, error, count } = await supabase
+      .from("commits")
+      .select("*", { count: "exact" })
+      .eq("repo_id", id)
+      .order("authored_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+
+    res.json({
+      data: commits,
+      meta: {
+        total: count || 0,
+        page,
+        limit,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
 });

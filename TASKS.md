@@ -22,33 +22,33 @@
 - [x] Populate `packages/shared-types` with API request/response types
 - [ ] Verify: database connectivity, insert/query round-trip
 
-## Phase 3: Git Operations Service
-- [ ] Implement `clone-service.ts` — clone a public GitHub repo to a temp directory via `simple-git`
-- [ ] Implement `git-log-service.ts` — parse full commit metadata from `git log`
-- [ ] Implement `diff-service.ts` — retrieve the diff for a single commit by SHA
-- [ ] Add GitHub URL validation (must be `https://github.com/<owner>/<repo>`, public only)
-- [ ] Add clone timeout handling (120s max)
-- [ ] Add metadata indexing cap (50k commits eager, backfill older)
-- [ ] Verify: clone + parse a real small repo, inspect parsed output
+## Phase 3: Git Operations Service ✅
+- [x] Implement `clone-service.ts` — clone a public GitHub repo to a temp directory via `simple-git`
+- [x] Implement `git-log-service.ts` — parse full commit metadata from `git log`
+- [x] Implement `diff-service.ts` — retrieve the diff for a single commit by SHA
+- [x] Add GitHub URL validation (must be `https://github.com/<owner>/<repo>`, public only)
+- [x] Add clone timeout handling (120s max)
+- [x] Add metadata indexing cap (50k commits eager, backfill older)
+- [x] Verify: clone + parse a real small repo, inspect parsed output
 
-## Phase 4: Repository Import Pipeline
-- [ ] `POST /api/repos` — accept URL, validate, create DB record, start background job
-- [ ] Background indexing job: clone → parse `git log` → bulk insert commits + commit_files → update repo status
-- [ ] `GET /api/repos/:id` — return repo with current status
-- [ ] Idempotency: if repo URL already exists, return existing record
-- [ ] Error handling: set status to `failed` with `error_message` on any failure
-- [ ] Verify: import a real repo end-to-end, poll status until `ready`
+## Phase 4: Repository Import Pipeline ✅
+- [x] `POST /api/repos` — accept URL, validate, create DB record, start background job
+- [x] Background indexing job: clone → parse `git log` → bulk insert commits + commit_files → update repo status
+- [x] `GET /api/repos/:id` — return repo with current status
+- [x] Idempotency: if repo URL already exists, return existing record
+- [x] Error handling: set status to `failed` with `error_message` on any failure
+- [x] Verify: import a real repo end-to-end, poll status until `ready`
 
-## Phase 5: AI Explanation Service
-- [ ] Gemini API client setup (`apps/api/src/lib/gemini.ts`)
-- [ ] Design and test the system prompt for commit explanations
-- [ ] `GET /api/commits/:sha/explain` — check cache → generate if miss → store → return
-- [ ] SHA-based global cache lookup (query `commit_explanations` by SHA before calling Gemini)
-- [ ] Diff truncation for large diffs (stay within Gemini token limits)
-- [ ] Per-session/IP rate limiting on AI calls
-- [ ] Token usage tracking (store `prompt_tokens`, `completion_tokens`)
-- [ ] Prompt-injection defenses in the system prompt
-- [ ] Verify: generate explanations for several real commits, confirm caching works
+## Phase 5: AI Explanation Service ✅
+- [x] Gemini API client setup (`apps/api/src/lib/gemini.ts`)
+- [x] Design and test the system prompt for commit explanations
+- [x] `GET /api/commits/:sha/explain` — check cache → generate if miss → store → return
+- [x] SHA-based global cache lookup (query `commit_explanations` by SHA before calling Gemini)
+- [x] Diff truncation for large diffs (stay within Gemini token limits)
+- [x] Per-session/IP rate limiting on AI calls
+- [x] Token usage tracking (store `prompt_tokens`, `completion_tokens`)
+- [x] Prompt-injection defenses in the system prompt
+- [x] Verify: generate explanations for several real commits, confirm caching works
 
 ## Phase 6: API Completion & Middleware
 - [ ] `GET /api/repos/:id/commits` — paginated, ordered by `authored_at DESC`

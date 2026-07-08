@@ -10,13 +10,14 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@chronocode/shared-types": "workspace:*",
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.49.0",
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "express-rate-limit": "^7.5.0",
     "simple-git": "^3.27.0",
-    "zod": "^3.24.0",
-    "@chronocode/shared-types": "workspace:*"
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
