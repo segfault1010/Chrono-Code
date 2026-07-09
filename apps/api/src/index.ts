@@ -20,10 +20,10 @@ const PORT = process.env.PORT || 3001;
 // Global Middleware
 // ---------------------------------------------------------------------------
 
-// Global rate limiting: 100 requests per 15 minutes per IP
+// Global rate limiting: 5000 requests per 15 minutes per IP
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 5000,
   message: { error: "Too many requests from this IP, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,

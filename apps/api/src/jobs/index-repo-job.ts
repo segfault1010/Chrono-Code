@@ -21,9 +21,9 @@ async function runIndexingPipeline(repoId: string, url: string) {
     // 3. Update status to indexing
     await updateRepoStatus(repoId, "indexing");
 
-    // 4. Parse commit history
+    // 4. Parse commit history (Limited to 100 for instantaneous loading)
     console.log(`[chronocode-api] Parsing commit history for ${url}...`);
-    const parsedCommits = await parseCommitHistory(targetDir, 50000);
+    const parsedCommits = await parseCommitHistory(targetDir, 100);
     console.log(`[chronocode-api] Parsed ${parsedCommits.length} commits for ${url}`);
 
     // 5. Bulk insert into Supabase

@@ -27,7 +27,7 @@ export async function parseCommitHistory(
   limit: number = 50000
 ): Promise<ParsedCommit[]> {
   try {
-    const cmd = `git log --max-count=${limit} --format="${GIT_LOG_FORMAT}" --numstat`;
+    const cmd = `git log --max-count=${limit} --format="${GIT_LOG_FORMAT}"`;
     
     // increase maxBuffer to 100MB to handle large repo logs
     const { stdout } = await execAsync(cmd, { cwd: repoPath, maxBuffer: 1024 * 1024 * 100 });
@@ -50,7 +50,6 @@ function parseGitLogOutput(output: string): ParsedCommit[] {
     if (endIdx === -1) continue;
     
     const metadataStr = block.substring(0, endIdx).trim();
-    const numstatStr = block.substring(endIdx + COMMIT_END.length).trim();
     
     const metaLines = metadataStr.split("\n");
     if (metaLines.length < 8) continue;
@@ -67,33 +66,8 @@ function parseGitLogOutput(output: string): ParsedCommit[] {
     // The rest of the metadata lines form the commit message
     const message = metaLines.slice(8).join("\n").trim();
     
-    // Parse numstat lines
-    const files: ParsedCommit["files"] = [];
-    let insertionsCount = 0;
-    let deletionsCount = 0;
-    
-    const statLines = numstatStr.split("\n").filter(l => l.trim());
-    for (const line of statLines) {
-      const parts = line.split("\t");
-      if (parts.length >= 3) {
-        // Numstat format: "insertions \t deletions \t path"
-        // Binary files show "-" for insertions/deletions
-        const ins = parts[0] === "-" ? 0 : parseInt(parts[0] || "0", 10);
-        const del = parts[1] === "-" ? 0 : parseInt(parts[1] || "0", 10);
-        const path = parts.slice(2).join("\t").trim();
-        
-        insertionsCount += ins;
-        deletionsCount += del;
-        
-        files.push({
-          file_path: path,
-          change_type: "M", // --numstat doesn't give us the change type reliably, assuming M for V1
-          insertions: ins,
-          deletions: del
-        });
-      }
-    }
-    
+    // Fast path: We skip calculating file diffs entirely to allow instant loading of massive repositories.
+    // The exact diff is only fetched dynamically when the user clicks 'AI Explain' on a specific commit.
     parsedCommits.push({
       commit: {
         sha,
@@ -105,11 +79,11 @@ function parseGitLogOutput(output: string): ParsedCommit[] {
         committer_email,
         committed_at,
         parent_shas,
-        files_changed: files.length,
-        insertions: insertionsCount,
-        deletions: deletionsCount
+        files_changed: 0,
+        insertions: 0,
+        deletions: 0
       },
-      files
+      files: []
     });
   }
   

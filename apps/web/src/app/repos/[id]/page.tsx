@@ -17,9 +17,7 @@ export default function RepoPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [activeCommit, setActiveCommit] = useState<string | null>(null);
-  const [explanation, setExplanation] = useState<any | null>(null);
-  const [isExplaining, setIsExplaining] = useState(false);
+  const [explanations, setExplanations] = useState<Record<string, { explanation: string, model_id: string, error?: string, isExplaining?: boolean }>>({});
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
@@ -68,15 +66,20 @@ export default function RepoPage() {
   };
 
   const handleExplain = async (sha: string) => {
-    if (activeCommit === sha) {
-      setActiveCommit(null);
-      setExplanation(null);
+    // If it's already open, close it (by removing it from state)
+    if (explanations[sha]) {
+      setExplanations((prev) => {
+        const next = { ...prev };
+        delete next[sha];
+        return next;
+      });
       return;
     }
 
-    setActiveCommit(sha);
-    setIsExplaining(true);
-    setExplanation({ explanation: "", model_id: "Loading..." });
+    setExplanations((prev) => ({
+      ...prev,
+      [sha]: { explanation: "", model_id: "Loading...", isExplaining: true }
+    }));
 
     try {
       const response = await api.commits.explain(sha, repoId);
@@ -95,7 +98,10 @@ export default function RepoPage() {
       let done = false;
       let streamedText = "";
 
-      setIsExplaining(false); // Stop loading spinner as soon as stream starts
+      setExplanations((prev) => ({
+        ...prev,
+        [sha]: { ...prev[sha], isExplaining: false }
+      })); // Stop loading spinner as soon as stream starts
 
       while (!done) {
         const { value, done: readerDone } = await reader.read();
@@ -111,23 +117,26 @@ export default function RepoPage() {
                 const data = JSON.parse(line.slice(6));
                 
                 if (data.error) {
-                  setExplanation({ error: data.error });
+                  setExplanations((prev) => ({
+                    ...prev,
+                    [sha]: { ...prev[sha], error: data.error }
+                  }));
                   done = true;
                   break;
                 }
 
                 if (data.text) {
                   streamedText += data.text;
-                  setExplanation((prev: any) => ({
+                  setExplanations((prev) => ({
                     ...prev,
-                    explanation: streamedText
+                    [sha]: { ...prev[sha], explanation: streamedText }
                   }));
                 }
 
                 if (data.done) {
-                  setExplanation((prev: any) => ({
+                  setExplanations((prev) => ({
                     ...prev,
-                    model_id: data.model_id
+                    [sha]: { ...prev[sha], model_id: data.model_id }
                   }));
                   done = true;
                 }
@@ -139,8 +148,10 @@ export default function RepoPage() {
         }
       }
     } catch (err: any) {
-      setExplanation({ error: err.message || "Failed to generate explanation" });
-      setIsExplaining(false);
+      setExplanations((prev) => ({
+        ...prev,
+        [sha]: { ...prev[sha], error: err.message || "Failed to generate explanation", isExplaining: false }
+      }));
     }
   };
 
@@ -211,7 +222,7 @@ export default function RepoPage() {
                     <span className="hidden sm:inline">•</span>
                     <span className="flex items-center gap-1.5">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                      {new Date(commit.authored_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {new Date(commit.authored_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </span>
                     <span className="hidden sm:inline">•</span>
                     <span className="font-mono text-xs bg-[var(--color-bg-primary)] px-2 py-1 rounded-md border border-[var(--color-border)]">
@@ -220,30 +231,30 @@ export default function RepoPage() {
                   </div>
                 </div>
                 <Button
-                  variant={activeCommit === commit.sha ? "secondary" : "primary"}
+                  variant={explanations[commit.sha] ? "secondary" : "primary"}
                   onClick={() => handleExplain(commit.sha)}
-                  isLoading={activeCommit === commit.sha && isExplaining}
+                  isLoading={explanations[commit.sha]?.isExplaining}
                   className="w-full sm:w-auto shrink-0 shadow-sm"
                 >
-                  {activeCommit === commit.sha ? "Close Insights" : "AI Explain"}
+                  {explanations[commit.sha] ? "Close Insights" : "AI Explain"}
                 </Button>
               </div>
 
               {/* Explanation View */}
-              {activeCommit === commit.sha && explanation && (
+              {explanations[commit.sha] && (
                 <div className="mt-5 pt-5 border-t border-[var(--color-border)] animate-fade-in">
-                  {explanation.error ? (
+                  {explanations[commit.sha].error ? (
                     <div className="flex items-center gap-2 text-[var(--color-error)] p-3 bg-[var(--color-error-bg)] rounded-lg">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      <p>{explanation.error}</p>
+                      <p>{explanations[commit.sha].error}</p>
                     </div>
                   ) : (
                     <div className="prose prose-invert max-w-none text-[var(--color-text-secondary)] leading-relaxed text-[15px]">
-                      <div dangerouslySetInnerHTML={{ __html: explanation.explanation.replace(/\n/g, "<br/>") }} />
+                      <div dangerouslySetInnerHTML={{ __html: explanations[commit.sha].explanation.replace(/\n/g, "<br/>") }} />
                       <div className="mt-4 flex justify-end">
                         <span className="text-xs font-mono text-[var(--color-text-tertiary)] flex items-center gap-1.5 opacity-70">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                          {explanation.model_id}
+                          {explanations[commit.sha].model_id}
                         </span>
                       </div>
                     </div>

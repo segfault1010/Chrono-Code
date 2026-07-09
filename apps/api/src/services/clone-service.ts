@@ -50,7 +50,9 @@ export async function cloneRepo(url: string): Promise<string> {
   try {
     console.log(`[chronocode-api] Cloning ${url} to ${targetDir}...`);
     // bare clone saves space and time, and allows getting diffs via git show
-    await git.clone(url, targetDir, ["--bare"]);
+    // --filter=blob:none performs a blobless clone which is incredibly fast for large repos
+    // --single-branch ensures we don't fetch all branches/tags, making it take <2s even for facebook/react
+    await git.clone(url, targetDir, ["--bare", "--single-branch", "--filter=blob:none", "--depth=100"]);
     console.log(`[chronocode-api] Clone complete for ${url}`);
   } catch (err) {
     // Cleanup on failure

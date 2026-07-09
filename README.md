@@ -6,7 +6,7 @@ Chronocode takes a public GitHub repository URL, indexes its full commit history
 
 ## Status
 
-🚧 **V1 — In Development**
+🚧 **V1 — Done**
 
 ## Tech Stack
 
@@ -15,7 +15,7 @@ Chronocode takes a public GitHub repository URL, indexes its full commit history
 | Frontend | Next.js 14+ (App Router), TypeScript |
 | Backend | Node.js, Express.js, TypeScript |
 | Database | Supabase Postgres |
-| AI | Google Gemini API (`gemini-2.0-flash`) |
+| AI | Google Gemini API (`gemini-3.5-flash`) |
 | Git | `simple-git` |
 | Monorepo | pnpm workspaces |
 
@@ -28,10 +28,12 @@ chronocode/
 │   └── api/              # Express.js backend → deployed on Railway/Render
 ├── packages/
 │   └── shared-types/     # Shared TypeScript type definitions
-├── PRD.md                # Product requirements
-├── AGENT.md              # Project constitution (conventions, data model, API contracts)
-├── TASKS.md              # Implementation roadmap
-├── DECISIONS.md          # Engineering decision log
+├── .agents/              # AI Agent Context & Documentation
+│   ├── AGENT.md          # Project constitution (conventions, data model, API contracts)
+│   ├── CONTEXT.md        # Current project status and architecture summary
+│   ├── DECISIONS.md      # Engineering decision log
+│   ├── PRD.md            # Product requirements
+│   └── TASKS.md          # Implementation roadmap
 └── README.md             # ← You are here
 ```
 
@@ -80,8 +82,6 @@ The project includes a `vercel.json` at the root for zero-config deployment.
 2. Vercel will automatically detect the settings. If it asks, set the Root Directory to `apps/web`.
 3. Environment Variables needed:
    - `NEXT_PUBLIC_API_URL=https://your-backend-api.com/api`
-
-## Roadmap
 
 ## Environment Variables
 
@@ -154,10 +154,10 @@ pnpm --filter @chronocode/api build
 
 | Document | Purpose |
 |----------|---------|
-| [PRD.md](./PRD.md) | Product requirements — what we're building and why |
-| [AGENT.md](./AGENT.md) | Project constitution — conventions, data model, API contracts |
-| [TASKS.md](./TASKS.md) | Implementation roadmap — current progress |
-| [DECISIONS.md](./DECISIONS.md) | Engineering decisions — rationale for key choices |
+| [.agents/PRD.md](./.agents/PRD.md) | Product requirements — what we're building and why |
+| [.agents/AGENT.md](./.agents/AGENT.md) | Project constitution — conventions, data model, API contracts |
+| [.agents/TASKS.md](./.agents/TASKS.md) | Implementation roadmap — current progress |
+| [.agents/DECISIONS.md](./.agents/DECISIONS.md) | Engineering decisions — rationale for key choices |
+| [.agents/CONTEXT.md](./.agents/CONTEXT.md) | Current project status and architecture summary |
 
 ---
-

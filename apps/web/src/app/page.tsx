@@ -114,8 +114,8 @@ export default function Home() {
             {[
               "expressjs/morgan",
               "expressjs/cors",
-              "chalk/chalk",
-              "tj/commander.js",
+              "axios/axios",
+              "reduxjs/redux",
               "npm/node-semver",
             ].map((repoName) => (
               <button
