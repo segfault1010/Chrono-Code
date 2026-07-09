@@ -1,15 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = process.env.GEMINI_API_KEY || "";
-
-if (!apiKey) {
-  console.warn(
-    "[chronocode-api] WARNING: GEMINI_API_KEY is not set. " +
-    "AI explanations will fail. Set this in your .env file."
-  );
+if (!process.env.GEMINI_API_KEY) {
+  console.warn("[chronocode-api] GEMINI_API_KEY is not set. AI explanations will fail.");
 }
 
-export const genAI = new GoogleGenerativeAI(apiKey);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "missing-key");
 
-// Using Gemini 1.5 Flash as default for fast, cost-effective explanations
-export const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Using Gemini 3.5 Flash for high speed and up to date model
+export const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });

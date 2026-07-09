@@ -54,6 +54,35 @@ cd chronocode
 pnpm install
 ```
 
+## Deployment
+
+Chronocode is designed to be easily deployed to modern cloud platforms.
+
+### 1. Database (Supabase)
+1. Create a new Supabase project.
+2. Run the SQL script located at `apps/api/src/migrations/001_initial_schema.sql` in your Supabase SQL Editor.
+3. Note your Database URL and Anon Key.
+
+### 2. Backend API (Render / Railway / Fly.io)
+The backend requires `git` to be installed to parse repositories. We provide a `Dockerfile` for seamless deployment.
+1. Connect your repository to your hosting provider.
+2. Select **Docker** as the deployment method.
+3. Set the Dockerfile path to `apps/api/Dockerfile`.
+4. Environment Variables needed:
+   - `PORT=3001`
+   - `SUPABASE_URL=...`
+   - `SUPABASE_KEY=...`
+   - `GEMINI_API_KEY=...`
+
+### 3. Frontend Web (Vercel)
+The project includes a `vercel.json` at the root for zero-config deployment.
+1. Import your repository in Vercel.
+2. Vercel will automatically detect the settings. If it asks, set the Root Directory to `apps/web`.
+3. Environment Variables needed:
+   - `NEXT_PUBLIC_API_URL=https://your-backend-api.com/api`
+
+## Roadmap
+
 ## Environment Variables
 
 ### `apps/api/.env`

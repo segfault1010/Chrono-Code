@@ -49,6 +49,6 @@ export const api = {
   },
   commits: {
     explain: (sha: string, repoId: string) => 
-      fetchApi<any>(`/commits/${sha}/explain?repoId=${repoId}`),
+      fetch(`${API_BASE_URL}/commits/${sha}/explain?repoId=${repoId}`),
   }
 };

@@ -6,13 +6,18 @@ import { BackgroundPattern } from "../components/layout/BackgroundPattern";
 
 export const metadata: Metadata = {
   title: "Chronocode — Git History Intelligence",
-  description:
-    "Turn raw git history into the explanation a senior teammate would give you. AI-powered commit explanations grounded in actual diffs.",
+  description: "Turn raw git history into clear, AI-generated explanations. Understand any codebase instantly.",
   openGraph: {
     title: "Chronocode — Git History Intelligence",
-    description:
-      "Turn raw git history into the explanation a senior teammate would give you.",
+    description: "Turn raw git history into clear, AI-generated explanations. Paste a GitHub URL to reconstruct context instantly.",
     type: "website",
+    locale: "en_US",
+    siteName: "Chronocode",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Chronocode — Git History Intelligence",
+    description: "Turn raw git history into clear, AI-generated explanations.",
   },
 };
 

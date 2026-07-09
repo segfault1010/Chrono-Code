@@ -6,7 +6,7 @@
 import { Router } from "express";
 import { supabase } from "../lib/db";
 import rateLimit from "express-rate-limit";
-import { explainCommit } from "../services/explanation-service";
+import { streamCommitExplanation } from "../services/explanation-service";
 import { createAppError } from "../middleware/error-handler";
 
 export const commitRoutes = Router();
@@ -30,8 +30,8 @@ commitRoutes.get("/:sha/explain", aiLimiter, async (req, res, next) => {
        throw createAppError("Missing repoId (query) or sha (param)", 400);
     }
 
-    const explanation = await explainCommit(repoId, sha);
-    res.json(explanation);
+    // The streamCommitExplanation function now directly writes to and ends the `res` object
+    await streamCommitExplanation(repoId, sha, res);
   } catch (err) {
     next(err);
   }
