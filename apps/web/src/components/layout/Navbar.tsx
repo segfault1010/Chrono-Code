@@ -3,7 +3,6 @@
 export function Navbar() {
   return (
     <header
-      suppressHydrationWarning
       style={{
         position: "sticky",
         top: 0,
@@ -14,7 +13,6 @@ export function Navbar() {
       }}
     >
       <div
-        suppressHydrationWarning
         style={{
           maxWidth: "1200px",
           margin: "0 auto",
@@ -27,7 +25,6 @@ export function Navbar() {
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
           {/* Subtle glowing orb as logo */}
           <div
-            suppressHydrationWarning
             style={{
               width: "24px",
               height: "24px",
@@ -37,7 +34,6 @@ export function Navbar() {
             }}
           />
           <span
-            suppressHydrationWarning
             style={{
               fontFamily: "var(--font-sans)",
               fontWeight: "var(--font-weight-bold)",
@@ -51,7 +47,6 @@ export function Navbar() {
         
         <nav style={{ display: "flex", gap: "var(--space-6)" }}>
           <a
-            suppressHydrationWarning
             href="https://github.com/your-username/chronocode"
             target="_blank"
             rel="noopener noreferrer"

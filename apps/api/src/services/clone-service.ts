@@ -36,13 +36,15 @@ export async function cloneRepo(url: string): Promise<string> {
   const git = simpleGit();
   
   try {
-    const stat = await fs.stat(path.join(targetDir, "config"));
-    if (stat.isFile()) {
-      // It's already cloned as a bare repo
+    const gitVerify = simpleGit(targetDir);
+    const isBare = await gitVerify.revParse(["--is-bare-repository"]);
+    if (isBare.trim() === "true") {
+      // It's a valid bare repo
       return targetDir;
     }
   } catch (e) {
-    // Proceed to clone if config doesn't exist
+    // Directory is invalid or corrupt, clean it up for re-cloning
+    await fs.rm(targetDir, { recursive: true, force: true }).catch(() => {});
   }
 
   try {

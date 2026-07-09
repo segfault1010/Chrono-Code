@@ -41,7 +41,6 @@ export default function Home() {
 
   return (
     <main
-      suppressHydrationWarning
       style={{
         display: "flex",
         flexDirection: "column",
@@ -51,9 +50,8 @@ export default function Home() {
         padding: "var(--space-6)",
       }}
     >
-      <div suppressHydrationWarning style={{ maxWidth: "600px", width: "100%", textAlign: "center", marginBottom: "var(--space-8)" }}>
+      <div style={{ maxWidth: "600px", width: "100%", textAlign: "center", marginBottom: "var(--space-8)" }}>
         <h1
-          suppressHydrationWarning
           style={{
             fontSize: "var(--text-4xl)",
             fontWeight: "var(--font-weight-bold)",
@@ -66,7 +64,7 @@ export default function Home() {
         >
           Understand any codebase in seconds
         </h1>
-        <p suppressHydrationWarning style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-lg)", lineHeight: 1.6 }}>
+        <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-lg)", lineHeight: 1.6 }}>
           Chronocode turns raw git history into the explanation a senior teammate would give you.
           Import a public GitHub repository to get started.
         </p>

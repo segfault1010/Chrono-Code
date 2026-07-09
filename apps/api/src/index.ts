@@ -11,6 +11,7 @@ import { errorHandler } from "./middleware/error-handler";
 import { requestLogger } from "./middleware/request-logger";
 import { repoRoutes } from "./routes/repo-routes";
 import { commitRoutes } from "./routes/commit-routes";
+import { supabase } from "./lib/db";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -59,7 +60,21 @@ app.use(errorHandler);
 // Start Server
 // ---------------------------------------------------------------------------
 
-app.listen(PORT, () => {
+// Reset orphaned jobs on startup
+async function resetOrphanedJobs() {
+  try {
+    await supabase
+      .from("repositories")
+      .update({ status: "failed", error_message: "Indexing aborted due to server restart." })
+      .in("status", ["queued", "cloning", "indexing"]);
+    console.log("[chronocode-api] Reset orphaned jobs.");
+  } catch (err) {
+    console.error("[chronocode-api] Failed to reset orphaned jobs:", err);
+  }
+}
+
+app.listen(PORT, async () => {
+  await resetOrphanedJobs();
   console.log(`[chronocode-api] Server running on http://localhost:${PORT}`);
   console.log(`[chronocode-api] Health check: http://localhost:${PORT}/api/health`);
 });
