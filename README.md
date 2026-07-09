@@ -28,12 +28,6 @@ chronocode/
 │   └── api/              # Express.js backend → deployed on Railway/Render
 ├── packages/
 │   └── shared-types/     # Shared TypeScript type definitions
-├── .agents/              # AI Agent Context & Documentation
-│   ├── AGENT.md          # Project constitution (conventions, data model, API contracts)
-│   ├── CONTEXT.md        # Current project status and architecture summary
-│   ├── DECISIONS.md      # Engineering decision log
-│   ├── PRD.md            # Product requirements
-│   └── TASKS.md          # Implementation roadmap
 └── README.md             # ← You are here
 ```
 

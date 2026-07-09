@@ -17,6 +17,7 @@ tmp/
 apps/api/tmp/
 
 # IDE
+.agents/
 .vscode/
 .idea/
 *.swp
