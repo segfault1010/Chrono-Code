@@ -15,13 +15,22 @@ export default function Home() {
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) return;
+    
+    let finalUrl = url.trim();
+    // Default to placeholder if empty
+    if (!finalUrl) {
+      finalUrl = "https://github.com/expressjs/morgan";
+    }
+    // Auto-prepend github.com if they just typed owner/repo
+    else if (!finalUrl.startsWith("http") && finalUrl.includes("/")) {
+      finalUrl = finalUrl.startsWith("github.com") ? `https://${finalUrl}` : `https://github.com/${finalUrl}`;
+    }
 
     setError(null);
     setIsLoading(true);
 
     try {
-      const repo = await api.repos.create(url);
+      const repo = await api.repos.create(finalUrl);
       router.push(`/repos/${repo.id}`);
     } catch (err: any) {
       setError(err.message || "Failed to import repository");
@@ -32,6 +41,7 @@ export default function Home() {
 
   return (
     <main
+      suppressHydrationWarning
       style={{
         display: "flex",
         flexDirection: "column",
@@ -41,8 +51,9 @@ export default function Home() {
         padding: "var(--space-6)",
       }}
     >
-      <div style={{ maxWidth: "600px", width: "100%", textAlign: "center", marginBottom: "var(--space-8)" }}>
+      <div suppressHydrationWarning style={{ maxWidth: "600px", width: "100%", textAlign: "center", marginBottom: "var(--space-8)" }}>
         <h1
+          suppressHydrationWarning
           style={{
             fontSize: "var(--text-4xl)",
             fontWeight: "var(--font-weight-bold)",
@@ -55,7 +66,7 @@ export default function Home() {
         >
           Understand any codebase in seconds
         </h1>
-        <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-lg)", lineHeight: 1.6 }}>
+        <p suppressHydrationWarning style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-lg)", lineHeight: 1.6 }}>
           Chronocode turns raw git history into the explanation a senior teammate would give you.
           Import a public GitHub repository to get started.
         </p>

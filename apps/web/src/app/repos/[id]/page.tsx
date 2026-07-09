@@ -116,12 +116,6 @@ export default function RepoPage() {
           <p style={{ color: "var(--color-text-secondary)" }}>
             {repo ? `Status: ${repo.status}...` : "Loading..."}
           </p>
-          <style>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
         </div>
       </main>
     );

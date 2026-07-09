@@ -14,6 +14,7 @@ export function BackgroundPattern() {
     >
       {/* Subtle grid pattern */}
       <div
+        suppressHydrationWarning
         style={{
           position: "absolute",
           top: 0,
@@ -31,6 +32,7 @@ export function BackgroundPattern() {
       />
       {/* Soft ambient glow from top */}
       <div
+        suppressHydrationWarning
         style={{
           position: "absolute",
           top: "-20%",
