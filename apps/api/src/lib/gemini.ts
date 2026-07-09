@@ -11,5 +11,5 @@ if (!apiKey) {
 
 export const genAI = new GoogleGenerativeAI(apiKey);
 
-// Using Gemini 1.5 Flash as default for fast, cost-effective explanations
-export const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Using Gemini 1.0 Pro as fallback for universal availability
+export const model = genAI.getGenerativeModel({ model: "gemini-pro" });

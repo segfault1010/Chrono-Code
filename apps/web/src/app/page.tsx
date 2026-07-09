@@ -1,54 +1,81 @@
-// ============================================================================
-// Chronocode — Home Page
-// Hero section with URL input and demo repository showcase.
-// Placeholder for Phase 7–8 implementation.
-// ============================================================================
+"use client";
 
-export default function HomePage() {
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Input } from "../components/ui/Input";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { api } from "../lib/api";
+
+export default function Home() {
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const handleImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!url.trim()) return;
+
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const repo = await api.repos.create(url);
+      router.push(`/repos/${repo.id}`);
+    } catch (err: any) {
+      setError(err.message || "Failed to import repository");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main
       style={{
-        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
+        minHeight: "calc(100vh - 80px)",
         padding: "var(--space-6)",
-        textAlign: "center",
       }}
     >
-      <h1
-        style={{
-          fontSize: "var(--text-4xl)",
-          fontWeight: "var(--font-weight-extrabold)",
-          letterSpacing: "-0.025em",
-          lineHeight: "var(--leading-tight)",
-          marginBottom: "var(--space-4)",
-        }}
-      >
-        <span style={{ color: "var(--color-accent-primary)" }}>Chrono</span>
-        <span style={{ color: "var(--color-text-primary)" }}>code</span>
-      </h1>
-      <p
-        style={{
-          fontSize: "var(--text-lg)",
-          color: "var(--color-text-secondary)",
-          maxWidth: "32rem",
-          lineHeight: "var(--leading-relaxed)",
-        }}
-      >
-        Turn raw git history into the explanation a senior teammate would give you.
-      </p>
-      <p
-        style={{
-          fontSize: "var(--text-sm)",
-          color: "var(--color-text-tertiary)",
-          marginTop: "var(--space-8)",
-          fontFamily: "var(--font-mono)",
-        }}
-      >
-        Scaffolding complete — UI coming in Phase 7
-      </p>
+      <div style={{ maxWidth: "600px", width: "100%", textAlign: "center", marginBottom: "var(--space-8)" }}>
+        <h1
+          style={{
+            fontSize: "var(--text-4xl)",
+            fontWeight: "var(--font-weight-bold)",
+            letterSpacing: "-0.04em",
+            marginBottom: "var(--space-4)",
+            background: "linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.7) 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
+          Understand any codebase in seconds
+        </h1>
+        <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-lg)", lineHeight: 1.6 }}>
+          Chronocode turns raw git history into the explanation a senior teammate would give you.
+          Import a public GitHub repository to get started.
+        </p>
+      </div>
+
+      <Card style={{ width: "100%", maxWidth: "500px" }}>
+        <form onSubmit={handleImport} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <Input
+            label="GitHub Repository URL"
+            placeholder="https://github.com/expressjs/morgan"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            error={error || undefined}
+            disabled={isLoading}
+          />
+          <Button type="submit" isLoading={isLoading} size="lg" style={{ marginTop: "var(--space-2)" }}>
+            Analyze Repository
+          </Button>
+        </form>
+      </Card>
     </main>
   );
 }

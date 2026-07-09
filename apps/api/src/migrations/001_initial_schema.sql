@@ -91,5 +91,14 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trigger_repositories_updated_at
   BEFORE UPDATE ON repositories
-  FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- ---------------------------------------------------------------------------
+-- Disable Row Level Security (RLS)
+-- Since all database access is server-side via the Express API in V1,
+-- we do not need RLS policies (which would block the anon key).
+-- ---------------------------------------------------------------------------
+ALTER TABLE repositories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE commits DISABLE ROW LEVEL SECURITY;
+ALTER TABLE commit_explanations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE commit_files DISABLE ROW LEVEL SECURITY;

@@ -5,13 +5,23 @@
 
 import { Router } from "express";
 import { supabase } from "../lib/db";
+import rateLimit from "express-rate-limit";
 import { explainCommit } from "../services/explanation-service";
 import { createAppError } from "../middleware/error-handler";
 
 export const commitRoutes = Router();
 
+// Stricter rate limit for AI explanation generation (20 requests per hour per IP)
+const aiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  message: { error: "AI explanation rate limit exceeded. Please try again in an hour." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // GET /api/commits/:sha/explain?repoId=xxx — Generate or fetch AI explanation
-commitRoutes.get("/:sha/explain", async (req, res, next) => {
+commitRoutes.get("/:sha/explain", aiLimiter, async (req, res, next) => {
   try {
     const { sha } = req.params;
     const repoId = req.query.repoId as string;

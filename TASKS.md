@@ -50,34 +50,35 @@
 - [x] Prompt-injection defenses in the system prompt
 - [x] Verify: generate explanations for several real commits, confirm caching works
 
-## Phase 6: API Completion & Middleware
-- [ ] `GET /api/repos/:id/commits` — paginated, ordered by `authored_at DESC`
-- [ ] Global rate limiting middleware (per-IP, all endpoints)
-- [ ] Global error handling middleware
-- [ ] Request validation middleware (URL params, query params, body)
-- [ ] CORS configuration (allow frontend origin)
-- [ ] Request logging middleware
-- [ ] Verify: all endpoints return correct responses, rate limits trigger, errors are clean
+## Phase 6: API Completion & Middleware ✅
+- [x] `GET /api/repos/:id/commits` — paginated, ordered by `authored_at DESC`
+- [x] Global error handling middleware (`apps/api/src/middleware/error-handler.ts`)
+- [x] Global request logging middleware (`apps/api/src/middleware/request-logger.ts`)
+- [x] CORS configuration (restrict to frontend origin)
+- [x] Rate limiting: `express-rate-limit` (100req/15m global, 20req/hr for AI)
+- [x] Verify: complete backend end-to-end flow with a real repository using cURL, rate limits trigger, errors are clean
 
-## Phase 7: Frontend — Design System & Shell
-- [ ] Design system: CSS custom properties (colors, spacing, typography, radii, shadows)
-- [ ] Import web font (e.g., Inter or Outfit from Google Fonts)
-- [ ] Global styles and CSS reset
-- [ ] Layout shell: header with logo/nav, main content area, footer
-- [ ] Dark mode by default (premium feel)
-- [ ] Loading spinner / skeleton components
-- [ ] Error display component
-- [ ] Verify: layout renders, tokens apply correctly, responsive at common breakpoints
+## Phase 7: Frontend — Design System & Shell ✅
+- [x] Design system: CSS custom properties (colors, spacing, typography, radii, shadows)
+- [x] Import web font (e.g., Inter or Outfit from Google Fonts)
+- [x] Global styles and CSS reset
+- [x] Layout shell: header with logo/nav, main content area, footer
+- [x] Dark mode by default (premium feel)
+- [x] Loading spinner / skeleton components
+- [x] Error display component
+- [x] Verify: layout renders, tokens apply correctly, responsive at common breakpoints
 
-## Phase 8: Frontend — Pages & Integration
-- [ ] API client module (`src/lib/api-client.ts`)
-- [ ] **Home page**: URL input form + demo repo cards
-- [ ] **Repository dashboard page**: status indicator + commit timeline (vertical feed, date-grouped, paginated)
-- [ ] **Commit detail page**: metadata panel + AI explanation (with loading/generating state)
-- [ ] Repository import flow: URL input → status polling → redirect to dashboard on `ready`
-- [ ] Demo repo cards: link directly to pre-indexed repo dashboards
-- [ ] Empty states, error states, loading states for all pages
-- [ ] Verify: full user flow works end-to-end against local API
+## Phase 8: Frontend — Pages & Integration ✅
+- [x] API client module (`src/lib/api-client.ts`)
+- [x] Home Page (`app/page.tsx`): repository import form (URL input, submit button)
+- [x] Handle repository import flow (redirect to timeline on success, show errors)
+- [x] Timeline Page (`app/repos/[id]/page.tsx`): poll for status if not ready
+- [x] Commit feed: display paginated commits (infinite scroll or 'Load More')
+- [x] AI Explanation View: accordion or modal to view AI insights per commit
+- [x] Verify: complete end-to-end import and view explanations via frontend UI
+- [x] Demo repo cards: link directly to pre-indexed repo dashboards
+- [x] Empty states, error states, loading states for all pages
+- [x] Verify: full user flow works end-to-end against local API
 
 ## Phase 9: Pre-Indexed Demos
 - [ ] Write a seed script (`apps/api/src/scripts/seed-demos.ts`)

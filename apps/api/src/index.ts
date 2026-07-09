@@ -3,8 +3,10 @@
 // Express server with middleware stack and route mounting.
 // ============================================================================
 
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import { errorHandler } from "./middleware/error-handler";
 import { requestLogger } from "./middleware/request-logger";
 import { repoRoutes } from "./routes/repo-routes";
@@ -16,6 +18,17 @@ const PORT = process.env.PORT || 3001;
 // ---------------------------------------------------------------------------
 // Global Middleware
 // ---------------------------------------------------------------------------
+
+// Global rate limiting: 100 requests per 15 minutes per IP
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: "Too many requests from this IP, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(globalLimiter);
 
 app.use(cors({
   origin: process.env.CORS_ORIGIN || "http://localhost:3000",

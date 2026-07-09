@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+import { Navbar } from "../components/layout/Navbar";
+import { BackgroundPattern } from "../components/layout/BackgroundPattern";
+
 export const metadata: Metadata = {
   title: "Chronocode — Git History Intelligence",
   description:
@@ -20,7 +23,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <BackgroundPattern />
+        <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+          <Navbar />
+          <div style={{ flex: 1 }}>{children}</div>
+        </div>
+      </body>
     </html>
   );
 }
