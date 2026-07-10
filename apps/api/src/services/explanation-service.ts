@@ -1,5 +1,5 @@
 import { supabase } from "../lib/db";
-import { model } from "../lib/gemini";
+import { model, embeddingModel } from "../lib/gemini";
 import { getCommitDiff } from "./diff-service";
 import { createAppError } from "../middleware/error-handler";
 import * as path from "path";
@@ -116,26 +116,34 @@ ${diff}
       res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
     }
 
-    // 6. Save to cache asynchronously
-    const explanationData = {
-      sha,
-      explanation: fullText,
-      model_id: "gemini-3.1-flash-lite",
-      prompt_tokens: 0, // Streaming doesn't expose usage metadata easily in this SDK version
-      completion_tokens: 0,
-    };
+    const model_id = "gemini-3.1-flash-lite";
 
-    supabase
-      .from("commit_explanations")
-      .insert([explanationData])
-      .then(({ error }) => {
+    // 6. Save to cache asynchronously, including vector embedding
+    (async () => {
+      try {
+        const embedResult = await embeddingModel.embedContent(fullText);
+        const embedding = embedResult.embedding.values;
+
+        const explanationData = {
+          sha,
+          explanation: fullText,
+          model_id,
+          prompt_tokens: 0,
+          completion_tokens: 0,
+          embedding: `[${embedding.join(",")}]`
+        };
+
+        const { error } = await supabase.from("commit_explanations").insert([explanationData]);
         if (error) {
-           console.error(`[chronocode-api] Failed to cache explanation for ${sha}:`, error);
+          console.error(`[chronocode-api] Failed to cache explanation for ${sha}:`, error);
         }
-      });
+      } catch (err) {
+        console.error(`[chronocode-api] Failed to generate embedding or cache for ${sha}:`, err);
+      }
+    })();
 
     // Send completion event
-    res.write(`data: ${JSON.stringify({ done: true, model_id: explanationData.model_id })}\n\n`);
+    res.write(`data: ${JSON.stringify({ done: true, model_id })}\n\n`);
     res.end();
   } catch (err) {
     console.error(`[chronocode-api] AI Generation failed for ${sha}:`, err);

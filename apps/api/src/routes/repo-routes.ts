@@ -8,10 +8,30 @@ import { Router } from "express";
 import { supabase } from "../lib/db";
 import { validateGithubUrl } from "../services/clone-service";
 import { startIndexingJob } from "../jobs/index-repo-job";
+import { semanticSearch } from "../services/search-service";
 import { createAppError } from "../middleware/error-handler";
 import { requireAuth, AuthenticatedRequest } from "../middleware/auth-middleware";
 
 export const repoRoutes = Router();
+
+// GET /api/repos/:id/search — Semantic search for commits
+repoRoutes.get("/:id/search", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const query = req.query.q as string;
+    
+    if (!query) {
+      throw createAppError("Missing search query 'q'", 400);
+    }
+    
+    const limit = parseInt(req.query.limit as string || "10", 10);
+    const matches = await semanticSearch(id, query, limit);
+    
+    res.json(matches);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // POST /api/repos — Start indexing a new repository
 repoRoutes.post("/", async (req, res, next) => {
