@@ -55,10 +55,8 @@ repoRoutes.post("/", async (req, res, next) => {
     if (findError) throw findError;
 
     if (existingRepo) {
-      // If it exists, return it. If it failed previously, we might want to restart, 
-      // but for V1 we just return the existing record and user can retry if we add a force flag.
-      // Wait, let's restart if it's 'failed'
-      if (existingRepo.status === "failed") {
+      // Restart job if it's failed, or sync if it's ready
+      if (existingRepo.status === "failed" || existingRepo.status === "ready") {
          await supabase.from("repositories").update({ status: "queued" }).eq("id", existingRepo.id);
          startIndexingJob(existingRepo.id, url, githubToken);
          existingRepo.status = "queued";

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { api } from "../../../lib/api";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
+import { AnalyticsDashboard } from "../../../components/AnalyticsDashboard";
 import type { Repository, Commit } from "@chronocode/shared-types";
 import { createClient } from "../../../lib/supabase/client";
 
@@ -27,6 +28,8 @@ export default function RepoPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState<"timeline" | "analytics">("timeline");
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
@@ -289,7 +292,28 @@ export default function RepoPage() {
         </Button>
       </header>
 
-      <div className="mb-8 animate-fade-in">
+      <div className="flex gap-6 border-b border-[var(--color-border)] mb-8">
+        <button 
+          onClick={() => setActiveTab("timeline")}
+          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "timeline" ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"}`}
+        >
+          Commit Timeline
+          {activeTab === "timeline" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
+        </button>
+        <button 
+          onClick={() => setActiveTab("analytics")}
+          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "analytics" ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"}`}
+        >
+          Contributor Analytics
+          {activeTab === "analytics" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
+        </button>
+      </div>
+
+      {activeTab === "analytics" ? (
+        <AnalyticsDashboard repoId={repoId} />
+      ) : (
+        <div className="animate-fade-in">
+          <div className="mb-8">
         <form onSubmit={handleSearch} className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--color-text-tertiary)]">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -399,6 +423,8 @@ export default function RepoPage() {
           </div>
         )}
       </div>
+      </div>
+      )}
     </main>
   );
 }

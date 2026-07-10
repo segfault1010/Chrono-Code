@@ -59,6 +59,7 @@ export const api = {
     get: (id: string) => fetchApi<Repository>(`/repos/${id}`),
     getCommits: (id: string, page = 1, limit = 50) => 
       fetchApi<GetCommitsResponse>(`/repos/${id}/commits?page=${page}&limit=${limit}`),
+    getAnalytics: (id: string) => fetchApi<any>(`/repos/${id}/analytics`),
     search: (id: string, query: string, limit = 10) =>
       fetchApi<any[]>(`/repos/${id}/search?q=${encodeURIComponent(query)}&limit=${limit}`),
     save: (id: string) => fetchApi<{ success: true }>(`/repos/${id}/save`, { method: "POST" }),

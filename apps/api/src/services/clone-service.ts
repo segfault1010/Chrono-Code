@@ -39,7 +39,13 @@ export async function cloneRepo(url: string, githubToken?: string): Promise<stri
     const gitVerify = simpleGit(targetDir);
     const isBare = await gitVerify.revParse(["--is-bare-repository"]);
     if (isBare.trim() === "true") {
-      // It's a valid bare repo
+      // It's a valid bare repo, fetch the latest commits
+      console.log(`[chronocode-api] Repo exists locally. Fetching latest...`);
+      try {
+        await gitVerify.fetch(["origin", "--depth=100"]);
+      } catch(e) {
+        console.warn(`[chronocode-api] Failed to fetch latest, continuing with local...`);
+      }
       return targetDir;
     }
   } catch (e) {

@@ -31,12 +31,17 @@ async function runIndexingPipeline(repoId: string, url: string, githubToken?: st
     await bulkInsertCommits(repoId, parsedCommits);
 
     // 6. Update status to ready
+    const { count } = await supabase
+      .from("commits")
+      .select("*", { count: "exact", head: true })
+      .eq("repo_id", repoId);
+      
     await supabase
       .from("repositories")
       .update({
         status: "ready",
-        total_commits: parsedCommits.length,
-        indexed_commits: parsedCommits.length,
+        total_commits: count || parsedCommits.length,
+        indexed_commits: count || parsedCommits.length,
         last_indexed_at: new Date().toISOString(),
       })
       .eq("id", repoId);
@@ -57,10 +62,28 @@ async function updateRepoStatus(repoId: string, status: string, errorMessage: st
 }
 
 async function bulkInsertCommits(repoId: string, parsedCommits: ParsedCommit[]) {
+  // 1. Fetch existing SHAs to prevent bulk insert conflicts
+  const { data: existingCommits } = await supabase
+    .from("commits")
+    .select("sha")
+    .eq("repo_id", repoId);
+    
+  const existingShas = new Set(existingCommits?.map(c => c.sha) || []);
+  
+  // 2. Filter new commits only
+  const newCommits = parsedCommits.filter(pc => !existingShas.has(pc.commit.sha));
+  
+  if (newCommits.length === 0) {
+    console.log(`[chronocode-api] No new commits to insert.`);
+    return;
+  }
+  
+  console.log(`[chronocode-api] Inserting ${newCommits.length} new commits...`);
+
   const CHUNK_SIZE = 500;
   
-  for (let i = 0; i < parsedCommits.length; i += CHUNK_SIZE) {
-    const chunk = parsedCommits.slice(i, i + CHUNK_SIZE);
+  for (let i = 0; i < newCommits.length; i += CHUNK_SIZE) {
+    const chunk = newCommits.slice(i, i + CHUNK_SIZE);
     
     // Assign UUIDs to commits so we can link files
     const commitsToInsert = chunk.map(pc => ({
@@ -69,18 +92,14 @@ async function bulkInsertCommits(repoId: string, parsedCommits: ParsedCommit[]) 
       ...pc.commit
     }));
     
-    // Insert commits
+    // Insert commits safely
     const { error: commitError } = await supabase
       .from("commits")
       .insert(commitsToInsert);
       
     if (commitError) {
       console.error(`[chronocode-api] Bulk insert error at chunk ${i}:`, commitError);
-      // If error is unique constraint violation (code 23505), it means commits already exist.
-      // For V1, we can ignore duplicate errors if we assume idempotent re-indexing.
-      if (commitError.code !== "23505") {
-         throw new Error(`Failed to insert commits: ${commitError.message}`);
-      }
+      throw new Error(`Failed to insert commits: ${commitError.message}`);
     }
 
     // Insert files
@@ -96,7 +115,6 @@ async function bulkInsertCommits(repoId: string, parsedCommits: ParsedCommit[]) 
     }
     
     if (filesToInsert.length > 0) {
-      // Chunk files further as there could be many files per commit
       const FILE_CHUNK_SIZE = 2000;
       for (let k = 0; k < filesToInsert.length; k += FILE_CHUNK_SIZE) {
         const fileChunk = filesToInsert.slice(k, k + FILE_CHUNK_SIZE);
@@ -106,11 +124,10 @@ async function bulkInsertCommits(repoId: string, parsedCommits: ParsedCommit[]) 
           
         if (fileError) {
            console.error(`[chronocode-api] Bulk insert file error at file chunk ${k}:`, fileError);
-           // Ignore file insert errors for already existing commits
         }
       }
     }
     
-    console.log(`[chronocode-api] Inserted chunk ${i} to ${i + CHUNK_SIZE} of ${parsedCommits.length}`);
+    console.log(`[chronocode-api] Inserted chunk ${i} to ${i + CHUNK_SIZE} of ${newCommits.length}`);
   }
 }

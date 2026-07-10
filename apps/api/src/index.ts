@@ -11,6 +11,8 @@ import { errorHandler } from "./middleware/error-handler";
 import { requestLogger } from "./middleware/request-logger";
 import { repoRoutes } from "./routes/repo-routes";
 import { commitRoutes } from "./routes/commit-routes";
+import { userRoutes } from "./routes/user-routes";
+import { analyticsRoutes } from "./routes/analytics-routes";
 import { supabase } from "./lib/db";
 
 const app = express();
@@ -48,9 +50,8 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-import { userRoutes } from "./routes/user-routes";
-
 app.use("/api/repos", repoRoutes);
+app.use("/api/repos/:id/analytics", analyticsRoutes);
 app.use("/api/commits", commitRoutes);
 app.use("/api/user", userRoutes);
 
