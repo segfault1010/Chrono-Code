@@ -6,6 +6,7 @@ import { api } from "../../../lib/api";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { AnalyticsDashboard } from "../../../components/AnalyticsDashboard";
+import { ReleaseNotes } from "@/components/ReleaseNotes";
 import type { Repository, Commit } from "@chronocode/shared-types";
 import { createClient } from "../../../lib/supabase/client";
 
@@ -29,7 +30,7 @@ export default function RepoPage() {
   const [searchResults, setSearchResults] = useState<any[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<"timeline" | "analytics">("timeline");
+  const [activeTab, setActiveTab] = useState<"timeline" | "analytics" | "releases">("timeline");
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
@@ -307,10 +308,19 @@ export default function RepoPage() {
           Contributor Analytics
           {activeTab === "analytics" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
         </button>
+        <button 
+          onClick={() => setActiveTab("releases")}
+          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "releases" ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"}`}
+        >
+          Release Notes
+          {activeTab === "releases" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
+        </button>
       </div>
 
       {activeTab === "analytics" ? (
         <AnalyticsDashboard repoId={repoId} />
+      ) : activeTab === "releases" ? (
+        <ReleaseNotes repoId={repoId} />
       ) : (
         <div className="animate-fade-in">
           <div className="mb-8">

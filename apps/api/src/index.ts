@@ -13,6 +13,7 @@ import { repoRoutes } from "./routes/repo-routes";
 import { commitRoutes } from "./routes/commit-routes";
 import { userRoutes } from "./routes/user-routes";
 import { analyticsRoutes } from "./routes/analytics-routes";
+import { releaseRoutes } from "./routes/release-routes";
 import { supabase } from "./lib/db";
 
 const app = express();
@@ -52,6 +53,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/repos", repoRoutes);
 app.use("/api/repos/:id/analytics", analyticsRoutes);
+app.use("/api/repos", releaseRoutes);
 app.use("/api/commits", commitRoutes);
 app.use("/api/user", userRoutes);
 

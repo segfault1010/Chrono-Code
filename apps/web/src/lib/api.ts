@@ -64,6 +64,15 @@ export const api = {
       fetchApi<any[]>(`/repos/${id}/search?q=${encodeURIComponent(query)}&limit=${limit}`),
     save: (id: string) => fetchApi<{ success: true }>(`/repos/${id}/save`, { method: "POST" }),
     unsave: (id: string) => fetchApi<{ success: true }>(`/repos/${id}/save`, { method: "DELETE" }),
+    generateReleaseNotes: async (id: string, range: string) => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+      return fetch(`${API_BASE_URL}/repos/${id}/releases/generate?range=${range}`, { headers });
+    },
   },
   user: {
     getSavedRepos: () => fetchApi<Repository[]>("/user/repos"),
