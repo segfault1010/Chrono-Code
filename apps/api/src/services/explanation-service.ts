@@ -120,7 +120,7 @@ ${diff}
     const explanationData = {
       sha,
       explanation: fullText,
-      model_id: "gemini-3.5-flash",
+      model_id: "gemini-3.1-flash-lite",
       prompt_tokens: 0, // Streaming doesn't expose usage metadata easily in this SDK version
       completion_tokens: 0,
     };

@@ -26,7 +26,7 @@ export async function validateGithubUrl(url: string): Promise<{ owner: string; n
   }
 }
 
-export async function cloneRepo(url: string): Promise<string> {
+export async function cloneRepo(url: string, githubToken?: string): Promise<string> {
   const { owner, name } = await validateGithubUrl(url);
   // Resolve against api directory root, assuming cwd is apps/api
   const targetDir = path.resolve(process.cwd(), CLONE_BASE_PATH, owner, name);
@@ -49,15 +49,21 @@ export async function cloneRepo(url: string): Promise<string> {
 
   try {
     console.log(`[chronocode-api] Cloning ${url} to ${targetDir}...`);
+    // Inject token for private repos
+    let cloneUrl = url;
+    if (githubToken) {
+      cloneUrl = url.replace("https://", `https://${githubToken}@`);
+    }
+
     // bare clone saves space and time, and allows getting diffs via git show
     // --filter=blob:none performs a blobless clone which is incredibly fast for large repos
     // --single-branch ensures we don't fetch all branches/tags, making it take <2s even for facebook/react
-    await git.clone(url, targetDir, ["--bare", "--single-branch", "--filter=blob:none", "--depth=100"]);
+    await git.clone(cloneUrl, targetDir, ["--bare", "--single-branch", "--filter=blob:none", "--depth=100"]);
     console.log(`[chronocode-api] Clone complete for ${url}`);
   } catch (err) {
     // Cleanup on failure
     await fs.rm(targetDir, { recursive: true, force: true }).catch(() => {});
-    throw createAppError("Failed to clone repository. Is it public?", 400, String(err));
+    throw createAppError("Failed to clone repository. Is it public or do you lack permissions?", 400, String(err));
   }
 
   return targetDir;

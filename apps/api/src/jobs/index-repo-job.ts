@@ -3,20 +3,20 @@ import { cloneRepo, validateGithubUrl } from "../services/clone-service";
 import { parseCommitHistory, ParsedCommit } from "../services/git-log-service";
 import { randomUUID } from "crypto";
 
-export async function startIndexingJob(repoId: string, url: string) {
+export async function startIndexingJob(repoId: string, url: string, githubToken?: string) {
   // Start job asynchronously. We don't await this in the route handler.
-  runIndexingPipeline(repoId, url).catch((err) => {
+  runIndexingPipeline(repoId, url, githubToken).catch((err) => {
     console.error(`[chronocode-api] Indexing pipeline failed for ${repoId}:`, err);
   });
 }
 
-async function runIndexingPipeline(repoId: string, url: string) {
+async function runIndexingPipeline(repoId: string, url: string, githubToken?: string) {
   try {
     // 1. Update status to cloning
     await updateRepoStatus(repoId, "cloning");
 
     // 2. Clone the repository
-    const targetDir = await cloneRepo(url);
+    const targetDir = await cloneRepo(url, githubToken);
 
     // 3. Update status to indexing
     await updateRepoStatus(repoId, "indexing");

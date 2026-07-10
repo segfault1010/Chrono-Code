@@ -6,6 +6,7 @@ import { api } from "../../../lib/api";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import type { Repository, Commit } from "@chronocode/shared-types";
+import { createClient } from "../../../lib/supabase/client";
 
 export default function RepoPage() {
   const params = useParams();
@@ -18,6 +19,10 @@ export default function RepoPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [explanations, setExplanations] = useState<Record<string, { explanation: string, model_id: string, error?: string, isExplaining?: boolean }>>({});
+  
+  const [user, setUser] = useState<any>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
@@ -44,6 +49,20 @@ export default function RepoPage() {
     };
 
     fetchRepo();
+
+    const checkAuthAndSaved = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        try {
+          const saved = await api.user.getSavedRepos();
+          setIsSaved(saved.some(r => r.id === repoId));
+        } catch (e) {}
+      }
+    };
+    checkAuthAndSaved();
+
     // Poll every 3 seconds if not ready
     pollInterval = setInterval(fetchRepo, 3000);
 
@@ -65,7 +84,33 @@ export default function RepoPage() {
     }
   };
 
+  const handleSaveToggle = async () => {
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+    setIsSaving(true);
+    try {
+      if (isSaved) {
+        await api.repos.unsave(repoId);
+        setIsSaved(false);
+      } else {
+        await api.repos.save(repoId);
+        setIsSaved(true);
+      }
+    } catch (e) {
+      console.error("Failed to toggle save", e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleExplain = async (sha: string) => {
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
     // If it's already open, close it (by removing it from state)
     if (explanations[sha]) {
       setExplanations((prev) => {
@@ -187,14 +232,34 @@ export default function RepoPage() {
 
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-8 animate-fade-in">
-      <header className="mb-10 sm:mb-12 border-b border-[var(--color-border)] pb-6">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-white to-[var(--color-text-secondary)] bg-clip-text text-transparent">
-          {repo.owner}/{repo.name}
-        </h1>
-        <p className="text-[var(--color-text-secondary)] mt-2 font-medium flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
-          {repo.total_commits.toLocaleString()} commits indexed
-        </p>
+      <header className="mb-10 sm:mb-12 border-b border-[var(--color-border)] pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-white to-[var(--color-text-secondary)] bg-clip-text text-transparent">
+            {repo.owner}/{repo.name}
+          </h1>
+          <p className="text-[var(--color-text-secondary)] mt-2 font-medium flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+            {repo.total_commits.toLocaleString()} commits indexed
+          </p>
+        </div>
+        <Button 
+          variant={isSaved ? "secondary" : "primary"} 
+          onClick={handleSaveToggle}
+          isLoading={isSaving}
+          className="shrink-0 flex items-center gap-2 shadow-md hover:shadow-lg transition-all border border-white/10"
+        >
+          {isSaved ? (
+            <>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+              Saved
+            </>
+          ) : (
+            <>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+              Save to Dashboard
+            </>
+          )}
+        </Button>
       </header>
 
       <div className="flex flex-col gap-5 relative">

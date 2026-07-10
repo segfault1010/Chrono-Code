@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@chronocode/shared-types": "workspace:*",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.49.0",
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4"

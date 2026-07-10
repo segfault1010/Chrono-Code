@@ -20,8 +20,10 @@ const aiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+import { requireAuth } from "../middleware/auth-middleware";
+
 // GET /api/commits/:sha/explain?repoId=xxx — Generate or fetch AI explanation
-commitRoutes.get("/:sha/explain", aiLimiter, async (req, res, next) => {
+commitRoutes.get("/:sha/explain", requireAuth, aiLimiter, async (req, res, next) => {
   try {
     const { sha } = req.params;
     const repoId = req.query.repoId as string;

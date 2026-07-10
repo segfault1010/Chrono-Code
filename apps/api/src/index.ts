@@ -33,7 +33,8 @@ app.use(globalLimiter);
 
 app.use(cors({
   origin: process.env.CORS_ORIGIN || "http://localhost:3000",
-  methods: ["GET", "POST"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-GitHub-Token"],
 }));
 
 app.use(express.json());
@@ -47,8 +48,11 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+import { userRoutes } from "./routes/user-routes";
+
 app.use("/api/repos", repoRoutes);
 app.use("/api/commits", commitRoutes);
+app.use("/api/user", userRoutes);
 
 // ---------------------------------------------------------------------------
 // Error Handling (must be last)

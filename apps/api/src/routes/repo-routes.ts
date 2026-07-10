@@ -9,6 +9,7 @@ import { supabase } from "../lib/db";
 import { validateGithubUrl } from "../services/clone-service";
 import { startIndexingJob } from "../jobs/index-repo-job";
 import { createAppError } from "../middleware/error-handler";
+import { requireAuth, AuthenticatedRequest } from "../middleware/auth-middleware";
 
 export const repoRoutes = Router();
 
@@ -16,6 +17,8 @@ export const repoRoutes = Router();
 repoRoutes.post("/", async (req, res, next) => {
   try {
     const { url } = req.body;
+    const githubToken = req.headers["x-github-token"] as string | undefined;
+
     if (!url || typeof url !== "string") {
       throw createAppError("Missing or invalid 'url' in request body", 400);
     }
@@ -37,7 +40,7 @@ repoRoutes.post("/", async (req, res, next) => {
       // Wait, let's restart if it's 'failed'
       if (existingRepo.status === "failed") {
          await supabase.from("repositories").update({ status: "queued" }).eq("id", existingRepo.id);
-         startIndexingJob(existingRepo.id, url);
+         startIndexingJob(existingRepo.id, url, githubToken);
          existingRepo.status = "queued";
       }
       return res.status(200).json(existingRepo);
@@ -58,7 +61,7 @@ repoRoutes.post("/", async (req, res, next) => {
     if (insertError) throw insertError;
 
     // Start background job
-    startIndexingJob(newRepo.id, url);
+    startIndexingJob(newRepo.id, url, githubToken);
 
     res.status(201).json(newRepo);
   } catch (err) {
@@ -114,6 +117,45 @@ repoRoutes.get("/:id/commits", async (req, res, next) => {
         totalPages: Math.ceil((count || 0) / limit)
       }
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/repos/:id/save — Save a repository to the dashboard
+repoRoutes.post("/:id/save", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    const { error } = await supabase
+      .from("saved_repositories")
+      .insert({ user_id: userId, repo_id: id });
+
+    if (error && error.code !== "23505") { // Ignore duplicates
+      throw error;
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/repos/:id/save — Unsave a repository
+repoRoutes.delete("/:id/save", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    const { error } = await supabase
+      .from("saved_repositories")
+      .delete()
+      .match({ user_id: userId, repo_id: id });
+
+    if (error) throw error;
+
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }
