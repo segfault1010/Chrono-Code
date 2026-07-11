@@ -42,7 +42,7 @@ export async function cloneRepo(url: string, githubToken?: string): Promise<stri
       // It's a valid bare repo, fetch the latest commits
       console.log(`[chronocode-api] Repo exists locally. Fetching latest...`);
       try {
-        await gitVerify.fetch(["origin", "+refs/heads/*:refs/heads/*", "--depth=100", "--prune"]);
+        await gitVerify.fetch(["origin", "+refs/heads/*:refs/heads/*", "--prune"]);
       } catch(e) {
         console.warn(`[chronocode-api] Failed to fetch latest, continuing with local...`);
       }
@@ -64,7 +64,7 @@ export async function cloneRepo(url: string, githubToken?: string): Promise<stri
     // bare clone saves space and time, and allows getting diffs via git show
     // --filter=blob:none performs a blobless clone which is incredibly fast for large repos
     // --single-branch ensures we don't fetch all branches/tags, making it take <2s even for facebook/react
-    await git.clone(cloneUrl, targetDir, ["--bare", "--single-branch", "--filter=blob:none", "--depth=100"]);
+    await git.clone(cloneUrl, targetDir, ["--bare", "--single-branch", "--filter=blob:none"]);
     console.log(`[chronocode-api] Clone complete for ${url}`);
   } catch (err) {
     // Cleanup on failure
