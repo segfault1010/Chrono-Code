@@ -25,6 +25,21 @@ repoRoutes.get("/:id/search", async (req, res, next) => {
     }
     
     const limit = parseInt(req.query.limit as string || "10", 10);
+    
+    // If query is exactly a 40-char SHA, just fetch that exact commit
+    if (/^[0-9a-f]{40}$/i.test(query.trim())) {
+      const { data: exactMatch } = await supabase
+        .from("commits")
+        .select("*")
+        .eq("repo_id", id)
+        .eq("sha", query.trim())
+        .maybeSingle();
+      
+      if (exactMatch) {
+        return res.json([ { ...exactMatch, similarity: 1 } ]);
+      }
+    }
+
     const matches = await semanticSearch(id, query, limit);
     
     res.json(matches);
@@ -107,6 +122,38 @@ repoRoutes.get("/:id", async (req, res, next) => {
   }
 });
 
+// POST /api/repos/:id/sync — Re-index / sync latest commits
+repoRoutes.post("/:id/sync", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const githubToken = req.headers["x-github-token"] as string | undefined;
+
+    const { data: repo, error } = await supabase
+      .from("repositories")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!repo) throw createAppError("Repository not found", 404);
+
+    // If it's already indexing or cloning, don't trigger another one
+    if (repo.status === "indexing" || repo.status === "cloning" || repo.status === "queued") {
+      return res.json({ message: "Sync already in progress", repo });
+    }
+
+    // Set to queued to start the UI polling
+    await supabase.from("repositories").update({ status: "queued" }).eq("id", id);
+    
+    // Start background job
+    startIndexingJob(repo.id, repo.github_url, githubToken);
+
+    res.json({ message: "Sync started", repo: { ...repo, status: "queued" } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/repos/:id/commits — Paginated commit list
 repoRoutes.get("/:id/commits", async (req, res, next) => {
   try {
@@ -135,6 +182,27 @@ repoRoutes.get("/:id/commits", async (req, res, next) => {
         totalPages: Math.ceil((count || 0) / limit)
       }
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/repos/:id/commits/evolution — Lightweight macro-view for timeline visualization
+repoRoutes.get("/:id/commits/evolution", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const limit = 1000; // Hard cap for performance
+
+    const { data: commits, error } = await supabase
+      .from("commits")
+      .select("sha, message, author_name, authored_at")
+      .eq("repo_id", id)
+      .order("authored_at", { ascending: true }) // Ascending for horizontal left-to-right timeline
+      .limit(limit);
+
+    if (error) throw error;
+
+    res.json(commits);
   } catch (err) {
     next(err);
   }

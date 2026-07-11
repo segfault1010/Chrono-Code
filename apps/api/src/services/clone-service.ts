@@ -42,7 +42,7 @@ export async function cloneRepo(url: string, githubToken?: string): Promise<stri
       // It's a valid bare repo, fetch the latest commits
       console.log(`[chronocode-api] Repo exists locally. Fetching latest...`);
       try {
-        await gitVerify.fetch(["origin", "--depth=100"]);
+        await gitVerify.fetch(["origin", "+refs/heads/*:refs/heads/*", "--depth=100", "--prune"]);
       } catch(e) {
         console.warn(`[chronocode-api] Failed to fetch latest, continuing with local...`);
       }

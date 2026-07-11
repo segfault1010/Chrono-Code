@@ -10,7 +10,7 @@ analyticsRoutes.get("/", async (req, res, next) => {
     const { id } = req.params;
 
     // 1. Get total commits and unique contributors count
-    const { data: totalCommits, error: totalError } = await supabase
+    const { count: totalCommits, error: totalError } = await supabase
       .from("commits")
       .select("sha", { count: "exact", head: true })
       .eq("repo_id", id);

@@ -14,6 +14,7 @@ import { commitRoutes } from "./routes/commit-routes";
 import { userRoutes } from "./routes/user-routes";
 import { analyticsRoutes } from "./routes/analytics-routes";
 import { releaseRoutes } from "./routes/release-routes";
+import { riskRoutes } from "./routes/risk-routes";
 import { supabase } from "./lib/db";
 
 const app = express();
@@ -54,8 +55,13 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/repos", repoRoutes);
 app.use("/api/repos/:id/analytics", analyticsRoutes);
 app.use("/api/repos", releaseRoutes);
+app.use("/api/repos", riskRoutes);
 app.use("/api/commits", commitRoutes);
 app.use("/api/user", userRoutes);
+
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
 // ---------------------------------------------------------------------------
 // Error Handling (must be last)

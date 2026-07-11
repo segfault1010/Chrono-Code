@@ -3,17 +3,18 @@ import { model } from "../lib/gemini";
 import { Response } from "express";
 import { sanitizeSecrets } from "../lib/sanitize";
 
-const SYSTEM_PROMPT = `You are a Technical Writer and Senior Developer.
-Given a list of commit messages, generate a professional, well-structured Markdown Release Notes document.
+const SYSTEM_PROMPT = `You are a Senior Security & Architecture Auditor.
+Given a list of commit messages, analyze them for potential risks, breaking changes, architectural shifts, and security implications.
 
 Guidelines:
-1. Group the commits into logical sections: 🚀 Features, 🐛 Bug Fixes, 🛠️ Maintenance & Refactoring.
-2. Translate raw, messy commit messages into clear, user-facing descriptions.
-3. Ignore trivial commits (e.g., "typo fix", "merge branch") unless they are important.
-4. Output ONLY the markdown. Do not include a conversational intro or outro.
-5. Add a brief, 1-2 sentence high-level summary at the very beginning.`;
+1. Identify high-risk commits (e.g., core API changes, DB schema migrations, major refactors, sensitive dependency updates).
+2. Flag potential breaking changes explicitly.
+3. Group findings into categories: 🚨 Breaking Changes, ⚠️ High Risk / Security, 🏗️ Architectural Shifts.
+4. If the commits look completely routine and safe, explicitly state: "No major risks or breaking changes detected in this range."
+5. Output structured, professional Markdown. Mention the commit SHA and Author for each flagged risk.
+6. Do not fabricate risks if none exist.`;
 
-export async function streamReleaseNotes(repoId: string, range: string, res: Response): Promise<void> {
+export async function streamRiskAnalysis(repoId: string, range: string, res: Response): Promise<void> {
   // Set SSE Headers
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -23,7 +24,7 @@ export async function streamReleaseNotes(repoId: string, range: string, res: Res
   try {
     let query = supabase
       .from("commits")
-      .select("sha, message, author_name")
+      .select("sha, message, author_name, authored_at")
       .eq("repo_id", repoId)
       .order("authored_at", { ascending: false });
 
@@ -52,16 +53,16 @@ export async function streamReleaseNotes(repoId: string, range: string, res: Res
     }
 
     if (commits.length === 0) {
-      res.write(`data: ${JSON.stringify({ text: "No commits found in this range." })}\n\n`);
+      res.write(`data: ${JSON.stringify({ text: "No commits found in this range to analyze." })}\n\n`);
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
       return;
     }
 
     // Format commits for the prompt
-    const commitList = commits.map(c => `- [${c.sha.substring(0, 7)}] ${c.message} (by ${c.author_name})`).join('\n');
+    const commitList = commits.map(c => `- [${c.sha.substring(0, 7)}] ${c.message.split('\n')[0]} (by ${c.author_name})`).join('\n');
 
-    const rawPrompt = `${SYSTEM_PROMPT}\n\n=== Raw Commits ===\n${commitList}\n\nPlease generate the Release Notes:`;
+    const rawPrompt = `${SYSTEM_PROMPT}\n\n=== Raw Commits ===\n${commitList}\n\nPlease generate the Risk Analysis Report:`;
     const prompt = sanitizeSecrets(rawPrompt);
 
     const resultStream = await model.generateContentStream(prompt);
@@ -74,8 +75,8 @@ export async function streamReleaseNotes(repoId: string, range: string, res: Res
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (err) {
-    console.error(`[chronocode-api] Failed to generate release notes for repo ${repoId}:`, err);
-    res.write(`data: ${JSON.stringify({ error: "Failed to generate release notes" })}\n\n`);
+    console.error(`[chronocode-api] Failed to generate risk analysis for repo ${repoId}:`, err);
+    res.write(`data: ${JSON.stringify({ error: "Failed to generate risk analysis" })}\n\n`);
     res.end();
   }
 }

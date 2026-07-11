@@ -59,9 +59,11 @@ export const api = {
     get: (id: string) => fetchApi<Repository>(`/repos/${id}`),
     getCommits: (id: string, page = 1, limit = 50) => 
       fetchApi<GetCommitsResponse>(`/repos/${id}/commits?page=${page}&limit=${limit}`),
+    getEvolution: (id: string) => fetchApi<any>(`/repos/${id}/commits/evolution`),
     getAnalytics: (id: string) => fetchApi<any>(`/repos/${id}/analytics`),
     search: (id: string, query: string, limit = 10) =>
       fetchApi<any[]>(`/repos/${id}/search?q=${encodeURIComponent(query)}&limit=${limit}`),
+    sync: (id: string) => fetchApi<any>(`/repos/${id}/sync`, { method: "POST" }),
     save: (id: string) => fetchApi<{ success: true }>(`/repos/${id}/save`, { method: "POST" }),
     unsave: (id: string) => fetchApi<{ success: true }>(`/repos/${id}/save`, { method: "DELETE" }),
     generateReleaseNotes: async (id: string, range: string) => {
@@ -72,6 +74,15 @@ export const api = {
         headers["Authorization"] = `Bearer ${session.access_token}`;
       }
       return fetch(`${API_BASE_URL}/repos/${id}/releases/generate?range=${range}`, { headers });
+    },
+    generateRiskAnalysis: async (id: string, range: string) => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+      return fetch(`${API_BASE_URL}/repos/${id}/risk-analysis?range=${range}`, { headers });
     },
   },
   user: {

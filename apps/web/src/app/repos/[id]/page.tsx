@@ -7,6 +7,8 @@ import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { AnalyticsDashboard } from "../../../components/AnalyticsDashboard";
 import { ReleaseNotes } from "@/components/ReleaseNotes";
+import { RiskAnalysis } from "@/components/RiskAnalysis";
+import { CodeEvolution } from "@/components/CodeEvolution";
 import type { Repository, Commit } from "@chronocode/shared-types";
 import { createClient } from "../../../lib/supabase/client";
 
@@ -30,8 +32,8 @@ export default function RepoPage() {
   const [searchResults, setSearchResults] = useState<any[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<"timeline" | "analytics" | "releases">("timeline");
-
+  const [activeTab, setActiveTab] = useState<"timeline" | "analytics" | "releases" | "risk" | "evolution">("evolution");
+  const [isSyncing, setIsSyncing] = useState(false);
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
 
@@ -40,9 +42,13 @@ export default function RepoPage() {
         const data = await api.repos.get(repoId);
         setRepo(data);
         
+        // Always load latest commits if we're on the first page, so the timeline is live!
+        if (page === 1) {
+          loadCommits(1);
+        }
+
         if (data.status === "ready") {
           setIsLoading(false);
-          loadCommits(1);
           clearInterval(pollInterval);
         } else if (data.status === "failed") {
           setError(data.error_message || "Repository indexing failed.");
@@ -75,7 +81,7 @@ export default function RepoPage() {
     pollInterval = setInterval(fetchRepo, 3000);
 
     return () => clearInterval(pollInterval);
-  }, [repoId]);
+  }, [repoId, isSyncing]); // Re-run effect if we trigger a sync
 
   const loadCommits = async (pageNumber: number) => {
     try {
@@ -231,6 +237,22 @@ export default function RepoPage() {
     }
   };
 
+  const handleJumpToTimeline = async (sha: string) => {
+    setActiveTab("timeline");
+    setSearchQuery(sha);
+    
+    // Trigger the search directly
+    setIsSearching(true);
+    try {
+      const results = await api.repos.search(repoId, sha);
+      setSearchResults(results);
+    } catch (err) {
+      console.error("Search failed:", err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   if (error) {
     return (
       <main className="max-w-4xl mx-auto p-4 sm:p-8 animate-fade-in">
@@ -261,6 +283,23 @@ export default function RepoPage() {
     );
   }
 
+  const handleSync = async () => {
+    if (isIndexing || isSyncing) return;
+    try {
+      setIsSyncing(true);
+      const res = await api.repos.sync(repoId);
+      if (res.repo) {
+        setRepo(res.repo); // Will set status to 'queued' and trigger polling
+      }
+    } catch (err: any) {
+      console.error("Sync failed:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const isIndexing = repo.status === "queued" || repo.status === "cloning" || repo.status === "indexing";
+
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-8 animate-fade-in">
       <header className="mb-10 sm:mb-12 border-b border-[var(--color-border)] pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -273,24 +312,37 @@ export default function RepoPage() {
             {repo.total_commits.toLocaleString()} commits indexed
           </p>
         </div>
-        <Button 
-          variant={isSaved ? "secondary" : "primary"} 
-          onClick={handleSaveToggle}
-          isLoading={isSaving}
-          className="shrink-0 flex items-center gap-2 shadow-md hover:shadow-lg transition-all border border-white/10"
-        >
-          {isSaved ? (
-            <>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-              Saved
-            </>
-          ) : (
-            <>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-              Save to Dashboard
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="secondary"
+            onClick={handleSync}
+            isLoading={isSyncing}
+            disabled={isIndexing}
+            className="shrink-0 flex items-center gap-2 shadow-sm hover:shadow-md transition-all border border-white/10"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isIndexing ? "animate-spin" : ""}><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.44l5.46-5.46"/></svg>
+            {isIndexing ? "Syncing..." : "Sync Latest Commits"}
+          </Button>
+          
+          <Button 
+            variant={isSaved ? "secondary" : "primary"} 
+            onClick={handleSaveToggle}
+            isLoading={isSaving}
+            className="shrink-0 flex items-center gap-2 shadow-md hover:shadow-lg transition-all border border-white/10"
+          >
+            {isSaved ? (
+              <>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                Saved
+              </>
+            ) : (
+              <>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                Save to Dashboard
+              </>
+            )}
+          </Button>
+        </div>
       </header>
 
       <div className="flex gap-6 border-b border-[var(--color-border)] mb-8">
@@ -309,18 +361,48 @@ export default function RepoPage() {
           {activeTab === "analytics" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
         </button>
         <button 
-          onClick={() => setActiveTab("releases")}
+          onClick={() => {
+            if (!user) {
+              window.location.href = "/login";
+              return;
+            }
+            setActiveTab("releases");
+          }}
           className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "releases" ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"}`}
         >
           Release Notes
           {activeTab === "releases" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
         </button>
+        <button 
+          onClick={() => {
+            if (!user) {
+              window.location.href = "/login";
+              return;
+            }
+            setActiveTab("risk");
+          }}
+          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "risk" ? "text-orange-500" : "text-[var(--color-text-tertiary)] hover:text-orange-400"}`}
+        >
+          Risk Analysis
+          {activeTab === "risk" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-[0_0_8px_theme(colors.orange.500)]" />}
+        </button>
+        <button 
+          onClick={() => setActiveTab("evolution")}
+          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "evolution" ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"}`}
+        >
+          Code Evolution
+          {activeTab === "evolution" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
+        </button>
       </div>
 
-      {activeTab === "analytics" ? (
-        <AnalyticsDashboard repoId={repoId} />
+      {activeTab === "evolution" ? (
+        <CodeEvolution repo={repo} onJumpToTimeline={handleJumpToTimeline} isIndexing={isIndexing} />
+      ) : activeTab === "analytics" ? (
+        <AnalyticsDashboard repoId={repoId} isIndexing={isIndexing} />
       ) : activeTab === "releases" ? (
         <ReleaseNotes repoId={repoId} />
+      ) : activeTab === "risk" ? (
+        <RiskAnalysis repoId={repoId} />
       ) : (
         <div className="animate-fade-in">
           <div className="mb-8">
@@ -383,7 +465,7 @@ export default function RepoPage() {
                     <span className="font-mono text-xs bg-[var(--color-bg-primary)] px-2 py-1 rounded-md border border-[var(--color-border)]">
                       {commit.sha.substring(0, 7)}
                     </span>
-                    {commit.similarity !== undefined && (
+                    {commit.similarity !== undefined && commit.similarity < 1 && (
                       <span className="text-xs font-semibold bg-[var(--color-accent-primary)]/10 text-[var(--color-accent-primary)] px-2 py-1 rounded-md border border-[var(--color-accent-primary)]/30">
                         Match: {(commit.similarity * 100).toFixed(1)}%
                       </span>

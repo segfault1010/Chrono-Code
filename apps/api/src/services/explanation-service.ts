@@ -3,6 +3,7 @@ import { model, embeddingModel } from "../lib/gemini";
 import { getCommitDiff } from "./diff-service";
 import { createAppError } from "../middleware/error-handler";
 import * as path from "path";
+import { sanitizeSecrets } from "../lib/sanitize";
 
 const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "./tmp/clones";
 
@@ -91,7 +92,7 @@ export async function streamCommitExplanation(repoId: string, sha: string, res: 
   }
 
   // 5. Generate Explanation with Gemini Stream
-  const prompt = `
+  const rawPrompt = `
 ${SYSTEM_PROMPT}
 
 Commit SHA: ${sha}
@@ -104,6 +105,7 @@ ${commit.message}
 === Commit Diff ===
 ${diff}
 `;
+  const prompt = sanitizeSecrets(rawPrompt);
 
   try {
     const resultStream = await model.generateContentStream(prompt);

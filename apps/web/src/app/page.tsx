@@ -47,7 +47,7 @@ export default function Home() {
       {/* Grid Pattern Overlay for Texture */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none animate-[fadeIn_2s_ease-out_forwards]"></div>
 
-      <div className="relative z-10 w-full max-w-4xl px-4 flex flex-col items-center animate-[fadeInUp_1s_ease-out_forwards] text-center mt-[-10vh]">
+      <div className="relative z-10 w-full max-w-4xl px-4 flex flex-col items-center animate-[fadeInUp_1s_ease-out_forwards] text-center">
         
         {/* Main Hero Header */}
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight text-white mb-6">
