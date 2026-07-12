@@ -11,6 +11,7 @@ export type RepositoryStatus =
   | "queued"
   | "cloning"
   | "indexing"
+  | "indexing_history"
   | "ready"
   | "failed";
 
@@ -23,6 +24,8 @@ export interface Repository {
   status: RepositoryStatus;
   total_commits: number;
   indexed_commits: number;
+  last_indexed_sha: string | null;
+  indexing_progress: number;       // 0-100 percentage
   error_message: string | null;
   created_at: string; // ISO-8601
   updated_at: string; // ISO-8601
@@ -78,4 +81,73 @@ export interface CommitFile {
   change_type: FileChangeType;
   insertions: number;
   deletions: number;
+}
+
+// ---------------------------------------------------------------------------
+// Repository Journey (Macro Evolution)
+// ---------------------------------------------------------------------------
+
+export type MilestoneCategory = "feature" | "bugfix" | "refactor" | "release" | "architecture" | "docs" | "chore" | "unknown";
+
+export interface JourneyMilestone {
+  sha: string;
+  message: string;
+  author_name: string;
+  authored_at: string;
+  category: MilestoneCategory;
+  impact_score: number; // 1-10
+  is_merge: boolean;
+  insertions?: number;
+  deletions?: number;
+  files_changed?: number;
+}
+
+export interface JourneyActivityNode {
+  date: string; // YYYY-MM
+  count: number;
+}
+
+export interface JourneyPhase {
+  name: string; // e.g., "Initial Development", "Rapid Growth", "Stabilization"
+  start_date: string; // YYYY-MM
+  end_date: string; // YYYY-MM
+  color: string;
+}
+
+export interface JourneyStats {
+  total_milestones: number;
+  repository_age_days: number;
+  most_active_month: string;
+  most_active_month_count: number;
+  largest_commit_sha: string | null;
+  releases_count: number;
+  major_features_count: number;
+  refactors_count: number;
+  // New deterministic metrics
+  total_commits: number;
+  contributors_count: number;
+  most_active_year: string;
+  largest_refactor_sha: string | null;
+  longest_inactive_period_days: number;
+  average_commit_size: number; // Insertions + Deletions
+  repository_health_score: number; // 0-100
+  development_velocity: number; // Avg commits per month
+}
+
+export interface RepositoryJourney {
+  milestones: JourneyMilestone[];
+  activity: JourneyActivityNode[];
+  phases: JourneyPhase[];
+  stats: JourneyStats;
+}
+
+export interface JourneyInsights {
+  status: "generating" | "completed" | "error";
+  analyzed_commit_sha: string;
+  ai_summary?: string;
+  health_indicators?: {
+    label: string;
+    value: string;
+    status: "good" | "warning" | "neutral";
+  }[];
 }

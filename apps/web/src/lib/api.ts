@@ -2,6 +2,8 @@ import type {
   Repository,
   Commit,
   GetCommitsResponse,
+  RepositoryJourney,
+  JourneyInsights,
 } from "@chronocode/shared-types";
 import { createClient } from "./supabase/client";
 
@@ -60,6 +62,8 @@ export const api = {
     getCommits: (id: string, page = 1, limit = 50) => 
       fetchApi<GetCommitsResponse>(`/repos/${id}/commits?page=${page}&limit=${limit}`),
     getEvolution: (id: string) => fetchApi<any>(`/repos/${id}/commits/evolution`),
+    getJourney: (id: string) => fetchApi<RepositoryJourney>(`/repos/${id}/journey`),
+    getJourneyInsights: (id: string, forceRefresh = false) => fetchApi<JourneyInsights>(`/repos/${id}/journey/insights${forceRefresh ? '?refresh=true' : ''}`),
     getAnalytics: (id: string) => fetchApi<any>(`/repos/${id}/analytics`),
     search: (id: string, query: string, limit = 10) =>
       fetchApi<any[]>(`/repos/${id}/search?q=${encodeURIComponent(query)}&limit=${limit}`),

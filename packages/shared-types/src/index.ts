@@ -11,6 +11,13 @@ export type {
   CommitExplanation,
   CommitFile,
   FileChangeType,
+  JourneyMilestone,
+  JourneyActivityNode,
+  JourneyPhase,
+  JourneyStats,
+  RepositoryJourney,
+  JourneyInsights,
+  MilestoneCategory,
 } from "./models";
 
 // API contracts

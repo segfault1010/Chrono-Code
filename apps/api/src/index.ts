@@ -16,6 +16,7 @@ import { analyticsRoutes } from "./routes/analytics-routes";
 import { releaseRoutes } from "./routes/release-routes";
 import { riskRoutes } from "./routes/risk-routes";
 import { supabase } from "./lib/db";
+import { resumeIndexingJob } from "./jobs/index-repo-job";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -73,16 +74,31 @@ app.use(errorHandler);
 // Start Server
 // ---------------------------------------------------------------------------
 
-// Reset orphaned jobs on startup
+// Reset or resume orphaned jobs on startup
 async function resetOrphanedJobs() {
   try {
+    // Phase 1 jobs (queued/cloning/indexing) have no usable data yet — mark as failed
     await supabase
       .from("repositories")
       .update({ status: "failed", error_message: "Indexing aborted due to server restart." })
       .in("status", ["queued", "cloning", "indexing"]);
-    console.log("[chronocode-api] Reset orphaned jobs.");
+
+    // Phase 2 jobs (indexing_history) have partial data and can be resumed
+    const { data: resumable } = await supabase
+      .from("repositories")
+      .select("id, github_url")
+      .eq("status", "indexing_history");
+
+    if (resumable && resumable.length > 0) {
+      console.log(`[chronocode-api] Resuming ${resumable.length} interrupted indexing job(s)...`);
+      for (const repo of resumable) {
+        resumeIndexingJob(repo.id, repo.github_url);
+      }
+    }
+
+    console.log("[chronocode-api] Orphaned job handling complete.");
   } catch (err) {
-    console.error("[chronocode-api] Failed to reset orphaned jobs:", err);
+    console.error("[chronocode-api] Failed to handle orphaned jobs:", err);
   }
 }
 

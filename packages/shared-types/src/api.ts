@@ -7,6 +7,8 @@ import type {
   Repository,
   Commit,
   CommitExplanation,
+  RepositoryJourney,
+  JourneyInsights,
 } from "./models";
 
 // ---------------------------------------------------------------------------
@@ -33,7 +35,8 @@ export interface PaginationMeta {
   page: number;
   limit: number;
   total: number;
-  total_pages: number;
+  totalPages: number;
+  hasMore: boolean;
 }
 
 /** Commit as returned in list endpoints — includes a flag for whether an explanation exists. */

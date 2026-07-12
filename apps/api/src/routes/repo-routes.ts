@@ -8,9 +8,14 @@ import { Router } from "express";
 import { supabase } from "../lib/db";
 import { validateGithubUrl } from "../services/clone-service";
 import { startIndexingJob } from "../jobs/index-repo-job";
+import { startSyncJob } from "../jobs/sync-job";
+import { getRepoAnalytics } from "../services/analytics-service";
+import { getOrGenerateJourneyInsights } from "../services/insights-service";
+import { rateLimit } from "express-rate-limit";
 import { semanticSearch } from "../services/search-service";
 import { createAppError } from "../middleware/error-handler";
 import { requireAuth, AuthenticatedRequest } from "../middleware/auth-middleware";
+import { generateRepositoryJourney } from "../services/journey-service";
 
 export const repoRoutes = Router();
 
@@ -122,7 +127,7 @@ repoRoutes.get("/:id", async (req, res, next) => {
   }
 });
 
-// POST /api/repos/:id/sync — Re-index / sync latest commits
+// POST /api/repos/:id/sync — Sync latest commits (lightweight, independent from historical indexing)
 repoRoutes.post("/:id/sync", async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -137,18 +142,15 @@ repoRoutes.post("/:id/sync", async (req, res, next) => {
     if (error) throw error;
     if (!repo) throw createAppError("Repository not found", 404);
 
-    // If it's already indexing or cloning, don't trigger another one
-    if (repo.status === "indexing" || repo.status === "cloning" || repo.status === "queued") {
-      return res.json({ message: "Sync already in progress", repo });
+    // If it's actively cloning or in initial indexing, don't trigger sync
+    if (repo.status === "cloning" || repo.status === "queued" || repo.status === "indexing") {
+      return res.json({ message: "Initial indexing in progress, sync will be available shortly", repo });
     }
 
-    // Set to queued to start the UI polling
-    await supabase.from("repositories").update({ status: "queued" }).eq("id", id);
-    
-    // Start background job
-    startIndexingJob(repo.id, repo.github_url, githubToken);
+    // Use the lightweight sync job — works during 'indexing_history' and 'ready'
+    startSyncJob(repo.id, repo.github_url, githubToken);
 
-    res.json({ message: "Sync started", repo: { ...repo, status: "queued" } });
+    res.json({ message: "Sync started", repo });
   } catch (err) {
     next(err);
   }
@@ -173,13 +175,17 @@ repoRoutes.get("/:id/commits", async (req, res, next) => {
 
     if (error) throw error;
 
+    const total = count || 0;
+    const totalPages = Math.ceil(total / limit);
+
     res.json({
       data: commits,
       meta: {
-        total: count || 0,
+        total,
         page,
         limit,
-        totalPages: Math.ceil((count || 0) / limit)
+        totalPages,
+        hasMore: page < totalPages
       }
     });
   } catch (err) {
@@ -208,6 +214,35 @@ repoRoutes.get("/:id/commits/evolution", async (req, res, next) => {
   }
 });
 
+// GET /api/repos/:id/journey — Aggregated repository journey (milestones & activity)
+repoRoutes.get("/:id/journey", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const journey = await generateRepositoryJourney(id);
+    res.json(journey);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/repos/:id/journey/insights — AI Summary and Health
+const insightsLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  message: { error: "AI insight rate limit exceeded." },
+});
+
+repoRoutes.get("/:id/journey/insights", insightsLimiter, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const forceRefresh = req.query.refresh === 'true';
+    const journey = await generateRepositoryJourney(id);
+    const insights = await getOrGenerateJourneyInsights(id, journey, forceRefresh);
+    res.json(insights);
+  } catch (err) {
+    next(err);
+  }
+});
 // POST /api/repos/:id/save — Save a repository to the dashboard
 repoRoutes.post("/:id/save", requireAuth, async (req: AuthenticatedRequest, res, next) => {
   try {

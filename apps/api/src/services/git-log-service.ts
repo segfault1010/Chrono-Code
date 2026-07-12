@@ -22,6 +22,10 @@ export interface ParsedCommit {
   files: Omit<CommitFile, "id" | "commit_id">[];
 }
 
+/**
+ * Parse all commits from the repository (up to `limit`).
+ * Used for the initial full-history parse. For incremental work, use parseCommitPage.
+ */
 export async function parseCommitHistory(
   repoPath: string,
   limit: number = 50000
@@ -36,6 +40,66 @@ export async function parseCommitHistory(
   } catch (err) {
     console.error("[chronocode-api] Error parsing git log:", err);
     throw createAppError("Failed to parse repository commit history", 500, String(err));
+  }
+}
+
+/**
+ * Parse a single page of commits using --skip and --max-count.
+ * This allows incremental, memory-efficient processing of large repositories.
+ * 
+ * @param repoPath - Path to the bare git repository
+ * @param skip - Number of commits to skip from HEAD (0-based)
+ * @param pageSize - Number of commits to retrieve in this page
+ * @returns Array of parsed commits for this page
+ */
+export async function parseCommitPage(
+  repoPath: string,
+  skip: number,
+  pageSize: number
+): Promise<ParsedCommit[]> {
+  try {
+    const cmd = `git log --skip=${skip} --max-count=${pageSize} --format="${GIT_LOG_FORMAT}"`;
+    
+    // 10MB buffer is sufficient for a single page of commits
+    const { stdout } = await execAsync(cmd, { cwd: repoPath, maxBuffer: 1024 * 1024 * 10 });
+    
+    if (!stdout.trim()) {
+      return []; // No more commits
+    }
+    
+    return parseGitLogOutput(stdout);
+  } catch (err) {
+    console.error(`[chronocode-api] Error parsing commit page (skip=${skip}, size=${pageSize}):`, err);
+    throw createAppError("Failed to parse commit page", 500, String(err));
+  }
+}
+
+/**
+ * Parse commits that are newer than a given SHA.
+ * Used by the sync job to fetch only new commits since last sync.
+ * 
+ * @param repoPath - Path to the bare git repository
+ * @param sinceSha - The SHA to start from (exclusive — commits after this SHA)
+ * @returns Array of parsed commits newer than sinceSha
+ */
+export async function parseCommitsSince(
+  repoPath: string,
+  sinceSha: string
+): Promise<ParsedCommit[]> {
+  try {
+    const cmd = `git log ${sinceSha}..HEAD --format="${GIT_LOG_FORMAT}"`;
+    
+    const { stdout } = await execAsync(cmd, { cwd: repoPath, maxBuffer: 1024 * 1024 * 50 });
+    
+    if (!stdout.trim()) {
+      return []; // No new commits
+    }
+    
+    return parseGitLogOutput(stdout);
+  } catch (err) {
+    console.error(`[chronocode-api] Error parsing commits since ${sinceSha}:`, err);
+    // If the SHA doesn't exist (e.g., force push), fall back to empty
+    return [];
   }
 }
 

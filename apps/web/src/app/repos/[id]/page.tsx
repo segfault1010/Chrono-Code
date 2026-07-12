@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { api } from "../../../lib/api";
 import { Card } from "../../../components/ui/Card";
@@ -12,6 +12,48 @@ import { CodeEvolution } from "@/components/CodeEvolution";
 import type { Repository, Commit } from "@chronocode/shared-types";
 import { createClient } from "../../../lib/supabase/client";
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function timeAgo(dateString: string | null): string {
+  if (!dateString) return "Never";
+  const seconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function getStatusColor(status: string): string {
+  switch (status) {
+    case "ready": return "var(--color-success, #22c55e)";
+    case "indexing_history": return "var(--color-accent-primary)";
+    case "indexing": case "cloning": case "queued": return "var(--color-warning, #f59e0b)";
+    case "failed": return "var(--color-error)";
+    default: return "var(--color-text-tertiary)";
+  }
+}
+
+function getStatusLabel(status: string): string {
+  switch (status) {
+    case "ready": return "Ready";
+    case "indexing_history": return "Indexing History…";
+    case "indexing": return "Indexing…";
+    case "cloning": return "Cloning…";
+    case "queued": return "Queued";
+    case "failed": return "Failed";
+    default: return status;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export default function RepoPage() {
   const params = useParams();
   const repoId = params.id as string;
@@ -22,6 +64,7 @@ export default function RepoPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [explanations, setExplanations] = useState<Record<string, { explanation: string, model_id: string, error?: string, isExplaining?: boolean }>>({});
   
   const [user, setUser] = useState<any>(null);
@@ -34,6 +77,14 @@ export default function RepoPage() {
   
   const [activeTab, setActiveTab] = useState<"timeline" | "analytics" | "releases" | "risk" | "evolution">("evolution");
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Infinite scroll sentinel ref
+  const scrollSentinelRef = useRef<HTMLDivElement>(null);
+
+  // -------------------------------------------------------------------------
+  // Data fetching
+  // -------------------------------------------------------------------------
+
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
 
@@ -47,14 +98,22 @@ export default function RepoPage() {
           loadCommits(1);
         }
 
-        if (data.status === "ready") {
+        // The repo is "usable" once it has data — either indexing_history or ready
+        const isUsable = data.status === "ready" || data.status === "indexing_history";
+        
+        if (isUsable) {
           setIsLoading(false);
+        }
+
+        if (data.status === "ready") {
+          // Fully done — stop polling
           clearInterval(pollInterval);
         } else if (data.status === "failed") {
           setError(data.error_message || "Repository indexing failed.");
           setIsLoading(false);
           clearInterval(pollInterval);
         }
+        // For indexing_history, queued, cloning, indexing — keep polling
       } catch (err: any) {
         setError(err.message || "Failed to load repository.");
         setIsLoading(false);
@@ -77,7 +136,7 @@ export default function RepoPage() {
     };
     checkAuthAndSaved();
 
-    // Poll every 3 seconds if not ready
+    // Poll every 3s during initial indexing, 5s during history indexing
     pollInterval = setInterval(fetchRepo, 3000);
 
     return () => clearInterval(pollInterval);
@@ -85,18 +144,47 @@ export default function RepoPage() {
 
   const loadCommits = async (pageNumber: number) => {
     try {
+      if (pageNumber > 1) setIsLoadingMore(true);
       const response: any = await api.repos.getCommits(repoId, pageNumber);
       if (pageNumber === 1) {
         setCommits(response.data);
       } else {
         setCommits((prev) => [...prev, ...response.data]);
       }
-      setHasMore(pageNumber < response.meta.totalPages);
+      setHasMore(response.meta.hasMore ?? (pageNumber < response.meta.totalPages));
       setPage(pageNumber);
     } catch (err: any) {
       console.error("Failed to load commits:", err);
+    } finally {
+      setIsLoadingMore(false);
     }
   };
+
+  // -------------------------------------------------------------------------
+  // Infinite scroll observer
+  // -------------------------------------------------------------------------
+
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry && entry.isIntersecting && hasMore && !isLoadingMore && !searchResults) {
+          loadCommits(page + 1);
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(node);
+
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, page, searchResults]);
+
+  // -------------------------------------------------------------------------
+  // Handlers
+  // -------------------------------------------------------------------------
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -253,6 +341,10 @@ export default function RepoPage() {
     }
   };
 
+  // -------------------------------------------------------------------------
+  // Render: Error state
+  // -------------------------------------------------------------------------
+
   if (error) {
     return (
       <main className="max-w-4xl mx-auto p-4 sm:p-8 animate-fade-in">
@@ -267,6 +359,10 @@ export default function RepoPage() {
     );
   }
 
+  // -------------------------------------------------------------------------
+  // Render: Loading state (only during initial Phase 1 — before first commits)
+  // -------------------------------------------------------------------------
+
   if (isLoading || !repo) {
     return (
       <main className="min-h-[60vh] flex items-center justify-center p-8 animate-fade-in">
@@ -276,20 +372,25 @@ export default function RepoPage() {
             <div className="absolute inset-0 rounded-full border-4 border-[var(--color-accent-primary)] border-t-transparent animate-spin"></div>
           </div>
           <p className="text-[var(--color-text-secondary)] font-medium tracking-wide animate-pulse">
-            {repo ? `Status: ${repo.status}...` : "Loading repository data..."}
+            {repo ? `Status: ${getStatusLabel(repo.status)}` : "Loading repository data..."}
           </p>
+          {repo && repo.total_commits > 0 && (
+            <p className="text-sm text-[var(--color-text-tertiary)]">
+              {repo.total_commits.toLocaleString()} commits found — indexing first batch…
+            </p>
+          )}
         </div>
       </main>
     );
   }
 
   const handleSync = async () => {
-    if (isIndexing || isSyncing) return;
+    if (isInitialIndexing || isSyncing) return;
     try {
       setIsSyncing(true);
       const res = await api.repos.sync(repoId);
       if (res.repo) {
-        setRepo(res.repo); // Will set status to 'queued' and trigger polling
+        setRepo(res.repo);
       }
     } catch (err: any) {
       console.error("Sync failed:", err);
@@ -298,53 +399,148 @@ export default function RepoPage() {
     }
   };
 
-  const isIndexing = repo.status === "queued" || repo.status === "cloning" || repo.status === "indexing";
+  // Initial indexing = Phase 1 (before any data is available)
+  const isInitialIndexing = repo.status === "queued" || repo.status === "cloning" || repo.status === "indexing";
+  // Background indexing = Phase 2 (repo is usable, history still loading)
+  const isBackgroundIndexing = repo.status === "indexing_history";
+  const isIndexing = isInitialIndexing || isBackgroundIndexing;
+  let progressPercent = 0;
+  if (repo.status === "ready") {
+    progressPercent = 100;
+  } else if (repo.indexing_progress) {
+    progressPercent = repo.indexing_progress;
+  } else if (repo.total_commits > 0) {
+    progressPercent = Math.round((repo.indexed_commits / repo.total_commits) * 100 * 10) / 10;
+  }
+
+  // -------------------------------------------------------------------------
+  // Render: Main page
+  // -------------------------------------------------------------------------
 
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-8 animate-fade-in">
-      <header className="mb-10 sm:mb-12 border-b border-[var(--color-border)] pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-white to-[var(--color-text-secondary)] bg-clip-text text-transparent">
-            {repo.owner}/{repo.name}
-          </h1>
-          <p className="text-[var(--color-text-secondary)] mt-2 font-medium flex items-center gap-2">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
-            {repo.total_commits.toLocaleString()} commits indexed
-          </p>
+      {/* ================================================================= */}
+      {/* Header — Repository name, progress, actions                       */}
+      {/* ================================================================= */}
+      <header className="mb-10 sm:mb-12 border-b border-[var(--color-border)] pb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-white to-[var(--color-text-secondary)] bg-clip-text text-transparent">
+              {repo.owner}/{repo.name}
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="secondary"
+              onClick={handleSync}
+              isLoading={isSyncing}
+              disabled={isInitialIndexing}
+              className="shrink-0 flex items-center gap-2 shadow-sm hover:shadow-md transition-all border border-white/10"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSyncing ? "animate-spin" : ""}>
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.44l5.46-5.46"/>
+              </svg>
+              {isSyncing ? "Syncing…" : "Sync Latest Commits"}
+            </Button>
+            
+            <Button 
+              variant={isSaved ? "secondary" : "primary"} 
+              onClick={handleSaveToggle}
+              isLoading={isSaving}
+              className="shrink-0 flex items-center gap-2 shadow-md hover:shadow-lg transition-all border border-white/10"
+            >
+              {isSaved ? (
+                <>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  Saved
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  Save to Dashboard
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="secondary"
-            onClick={handleSync}
-            isLoading={isSyncing}
-            disabled={isIndexing}
-            className="shrink-0 flex items-center gap-2 shadow-sm hover:shadow-md transition-all border border-white/10"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isIndexing ? "animate-spin" : ""}><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.44l5.46-5.46"/></svg>
-            {isIndexing ? "Syncing..." : "Sync Latest Commits"}
-          </Button>
-          
-          <Button 
-            variant={isSaved ? "secondary" : "primary"} 
-            onClick={handleSaveToggle}
-            isLoading={isSaving}
-            className="shrink-0 flex items-center gap-2 shadow-md hover:shadow-lg transition-all border border-white/10"
-          >
-            {isSaved ? (
-              <>
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-                Saved
-              </>
-            ) : (
-              <>
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-                Save to Dashboard
-              </>
-            )}
-          </Button>
+
+        {/* =============================================================== */}
+        {/* Indexing Progress Panel                                          */}
+        {/* =============================================================== */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-sm">
+          {/* Total Commits */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[var(--color-text-tertiary)] text-xs font-medium uppercase tracking-wider">Total Commits</span>
+            <span className="text-[var(--color-text-primary)] font-bold text-lg tabular-nums">
+              {repo.total_commits.toLocaleString()}
+            </span>
+          </div>
+
+          {/* Indexed */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[var(--color-text-tertiary)] text-xs font-medium uppercase tracking-wider">Indexed</span>
+            <span className="text-[var(--color-text-primary)] font-bold text-lg tabular-nums">
+              {repo.indexed_commits.toLocaleString()}
+              <span className="text-[var(--color-text-tertiary)] font-normal text-sm ml-1">
+                / {repo.total_commits.toLocaleString()}
+              </span>
+            </span>
+          </div>
+
+          {/* Progress */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[var(--color-text-tertiary)] text-xs font-medium uppercase tracking-wider">Progress</span>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2 rounded-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] overflow-hidden">
+                <div 
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{ 
+                    width: `${progressPercent}%`,
+                    background: progressPercent >= 100 
+                      ? 'linear-gradient(90deg, #22c55e, #16a34a)' 
+                      : 'linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary, #a855f7))',
+                    boxShadow: progressPercent < 100 
+                      ? '0 0 8px var(--color-accent-primary)' 
+                      : '0 0 8px #22c55e'
+                  }}
+                />
+              </div>
+              <span className="text-[var(--color-text-secondary)] font-bold text-sm tabular-nums min-w-[3rem] text-right">
+                {progressPercent}%
+              </span>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[var(--color-text-tertiary)] text-xs font-medium uppercase tracking-wider">Status</span>
+            <span className="flex items-center gap-2 font-semibold" style={{ color: getStatusColor(repo.status) }}>
+              {isBackgroundIndexing && (
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: getStatusColor(repo.status) }}></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ backgroundColor: getStatusColor(repo.status) }}></span>
+                </span>
+              )}
+              {repo.status === "ready" && (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+              )}
+              {getStatusLabel(repo.status)}
+            </span>
+          </div>
+
+          {/* Last Sync */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[var(--color-text-tertiary)] text-xs font-medium uppercase tracking-wider">Last Sync</span>
+            <span className="text-[var(--color-text-secondary)] font-medium">
+              {timeAgo(repo.last_indexed_at)}
+            </span>
+          </div>
         </div>
       </header>
 
+      {/* ================================================================= */}
+      {/* Tab Navigation                                                     */}
+      {/* ================================================================= */}
       <div className="flex gap-6 border-b border-[var(--color-border)] mb-8">
         <button 
           onClick={() => setActiveTab("timeline")}
@@ -395,6 +591,10 @@ export default function RepoPage() {
         </button>
       </div>
 
+      {/* ================================================================= */}
+      {/* Tab Content                                                        */}
+      {/* ================================================================= */}
+
       {activeTab === "evolution" ? (
         <CodeEvolution repo={repo} onJumpToTimeline={handleJumpToTimeline} isIndexing={isIndexing} />
       ) : activeTab === "analytics" ? (
@@ -405,6 +605,7 @@ export default function RepoPage() {
         <RiskAnalysis repoId={repoId} />
       ) : (
         <div className="animate-fade-in">
+          {/* Search bar */}
           <div className="mb-8">
         <form onSubmit={handleSearch} className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--color-text-tertiary)]">
@@ -434,6 +635,7 @@ export default function RepoPage() {
         )}
       </div>
 
+      {/* Commit Timeline */}
       <div className="flex flex-col gap-5 relative">
         {/* Timeline line behind cards */}
         <div className="absolute left-[27px] sm:left-[35px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-[var(--color-accent-primary)]/20 via-[var(--color-border)] to-transparent -z-10" />
@@ -507,11 +709,32 @@ export default function RepoPage() {
           </div>
         ))}
 
+        {/* Infinite scroll sentinel */}
         {hasMore && !searchResults && (
-          <div className="flex justify-center mt-8">
-            <Button variant="secondary" onClick={() => loadCommits(page + 1)} className="px-8 py-2.5 rounded-full shadow-md hover:shadow-lg">
-              Load More Commits
-            </Button>
+          <div 
+            ref={loadMoreRef}
+            className="flex justify-center py-8"
+          >
+            {isLoadingMore ? (
+              <div className="flex items-center gap-3 text-[var(--color-text-secondary)]">
+                <div className="w-5 h-5 rounded-full border-2 border-[var(--color-accent-primary)] border-t-transparent animate-spin" />
+                <span className="text-sm font-medium">Loading more commits…</span>
+              </div>
+            ) : (
+              <div className="w-6 h-6 rounded-full border-2 border-[var(--color-border)] border-t-transparent animate-spin opacity-30" />
+            )}
+          </div>
+        )}
+
+        {/* End of list indicator */}
+        {!hasMore && commits.length > 0 && !searchResults && (
+          <div className="flex justify-center py-6">
+            <p className="text-xs text-[var(--color-text-tertiary)] font-medium">
+              {isBackgroundIndexing 
+                ? `Showing ${commits.length} of ${repo.indexed_commits.toLocaleString()} indexed commits — more loading in background…`
+                : `All ${commits.length} commits loaded`
+              }
+            </p>
           </div>
         )}
       </div>
