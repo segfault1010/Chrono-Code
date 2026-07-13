@@ -8,23 +8,49 @@ import { createAppError } from "../middleware/error-handler";
 const execAsync = promisify(exec);
 const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "./tmp/clones";
 
-export async function validateGithubUrl(url: string): Promise<{ owner: string; name: string }> {
+export async function validateGithubUrl(rawUrl: string): Promise<{ owner: string; name: string }> {
+  console.log(`[Validation] Raw input: "${rawUrl}"`);
+  
   try {
+    let url = rawUrl.trim();
+    
+    // Remove invisible characters/whitespace just in case
+    url = url.replace(/[\u200B-\u200D\uFEFF]/g, '');
+
+    // Normalize input
+    if (!url.includes("github.com")) {
+      // It might be just owner/repo
+      url = `https://github.com/${url}`;
+    } else if (!/^https?:\/\//i.test(url)) {
+      // It has github.com but no protocol
+      url = `https://${url}`;
+    }
+
+    console.log(`[Validation] Normalized URL: "${url}"`);
+
     const parsed = new URL(url);
     if (parsed.hostname !== "github.com") {
-      throw new Error();
+      throw new Error(`Hostname is not github.com (found ${parsed.hostname})`);
     }
+    
     const parts = parsed.pathname.split("/").filter(Boolean);
-    if (parts.length !== 2) {
-      throw new Error();
+    if (parts.length < 2) {
+      throw new Error(`Path does not have at least 2 parts (found ${parts.length})`);
     }
+    
     const owner = parts[0];
-    const name = parts[1];
+    const name = parts[1].replace(/\.git$/, "");
+    
     if (!owner || !name) {
-      throw new Error();
+      throw new Error("Owner or name is empty");
     }
-    return { owner, name: name.replace(/\.git$/, "") };
-  } catch (err) {
+    
+    console.log(`[Validation] Extracted - Owner: "${owner}", Repository: "${name}"`);
+    console.log(`[Validation] Result: SUCCESS`);
+    
+    return { owner, name };
+  } catch (err: any) {
+    console.log(`[Validation] Result: FAILED - ${err.message}`);
     throw createAppError("Invalid GitHub URL. Must be like https://github.com/owner/repo", 400);
   }
 }

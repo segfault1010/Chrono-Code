@@ -370,14 +370,14 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
             </div>
 
             {/* Bottom X-Axis (Years) */}
-            <div className="absolute bottom-2 left-0 right-0 h-4 pointer-events-none z-10 opacity-50">
+            <div className="absolute bottom-6 left-0 right-0 h-4 pointer-events-none z-10 opacity-80">
               {timeScale && years.map(year => {
                 const time = new Date(`${year}-01-01`).getTime();
                 const xPercent = 5 + ((time - timeScale.minTime) / timeScale.span) * 90;
                 return (
                   <div 
                     key={year} 
-                    className="absolute text-[10px] text-white font-bold font-mono tracking-widest whitespace-nowrap" 
+                    className="absolute text-xs text-white font-bold font-mono tracking-widest whitespace-nowrap" 
                     style={{ left: `${xPercent}%`, transform: 'translateX(-50%)' }}
                   >
                     {year}

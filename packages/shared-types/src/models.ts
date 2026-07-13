@@ -152,3 +152,14 @@ export interface JourneyInsights {
     status: "good" | "warning" | "neutral";
   }[];
 }
+
+export interface RepositoryComparison {
+  id: string;
+  repo1_id: string;
+  repo2_id: string;
+  ai_summary: string | null;
+  error_message?: string | null;
+  status: 'queued' | 'generating' | 'completed' | 'error';
+  created_at: string;
+  updated_at: string;
+}

@@ -9,6 +9,8 @@ import { AnalyticsDashboard } from "../../../components/AnalyticsDashboard";
 import { ReleaseNotes } from "@/components/ReleaseNotes";
 import { RiskAnalysis } from "@/components/RiskAnalysis";
 import { CodeEvolution } from "@/components/CodeEvolution";
+import { FunctionHistory } from "@/components/FunctionHistory";
+import { TabErrorBoundary } from "@/components/ui/TabErrorBoundary";
 import type { Repository, Commit } from "@chronocode/shared-types";
 import { createClient } from "../../../lib/supabase/client";
 
@@ -75,11 +77,16 @@ export default function RepoPage() {
   const [searchResults, setSearchResults] = useState<any[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<"timeline" | "analytics" | "releases" | "risk" | "evolution">("evolution");
+  const [activeTab, setActiveTab] = useState<"timeline" | "analytics" | "releases" | "risk" | "evolution" | "functions">("timeline");
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Infinite scroll sentinel ref
   const scrollSentinelRef = useRef<HTMLDivElement>(null);
+
+  // Reset to timeline when switching repos
+  useEffect(() => {
+    setActiveTab("timeline");
+  }, [repoId]);
 
   // -------------------------------------------------------------------------
   // Data fetching
@@ -589,6 +596,13 @@ export default function RepoPage() {
           Code Evolution
           {activeTab === "evolution" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
         </button>
+        <button 
+          onClick={() => setActiveTab("functions")}
+          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "functions" ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"}`}
+        >
+          Function History
+          {activeTab === "functions" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
+        </button>
       </div>
 
       {/* ================================================================= */}
@@ -596,13 +610,25 @@ export default function RepoPage() {
       {/* ================================================================= */}
 
       {activeTab === "evolution" ? (
-        <CodeEvolution repo={repo} onJumpToTimeline={handleJumpToTimeline} isIndexing={isIndexing} />
+        <TabErrorBoundary tabName="Code Evolution">
+          <CodeEvolution repo={repo} onJumpToTimeline={handleJumpToTimeline} isIndexing={isIndexing} />
+        </TabErrorBoundary>
       ) : activeTab === "analytics" ? (
-        <AnalyticsDashboard repoId={repoId} isIndexing={isIndexing} />
+        <TabErrorBoundary tabName="Contributor Analytics">
+          <AnalyticsDashboard repoId={repoId} isIndexing={isIndexing} />
+        </TabErrorBoundary>
+      ) : activeTab === "functions" ? (
+        <TabErrorBoundary tabName="Function History">
+          <FunctionHistory repoId={repoId} />
+        </TabErrorBoundary>
       ) : activeTab === "releases" ? (
-        <ReleaseNotes repoId={repoId} />
+        <TabErrorBoundary tabName="Release Notes">
+          <ReleaseNotes repoId={repoId} />
+        </TabErrorBoundary>
       ) : activeTab === "risk" ? (
-        <RiskAnalysis repoId={repoId} />
+        <TabErrorBoundary tabName="Risk Analysis">
+          <RiskAnalysis repoId={repoId} />
+        </TabErrorBoundary>
       ) : (
         <div className="animate-fade-in">
           {/* Search bar */}

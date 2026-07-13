@@ -73,3 +73,21 @@ export interface ApiErrorResponse {
   error: string;
   details?: string;
 }
+
+// ---------------------------------------------------------------------------
+// GET /api/repos/:id/functions/history
+// ---------------------------------------------------------------------------
+
+export interface FunctionHistoryNode {
+  sha: string;
+  author_name: string;
+  authored_at: string;
+  message: string;
+  patch: string; // The specific diff for the function in this commit
+}
+
+export interface GetFunctionHistoryResponse {
+  functionName: string;
+  filePath: string;
+  history: FunctionHistoryNode[];
+}

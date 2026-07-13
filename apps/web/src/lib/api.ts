@@ -52,6 +52,23 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
   return response.json();
 }
 
+// --- Simple InMemory Cache ---
+const apiCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+
+async function fetchWithCache<T>(cacheKey: string, fetchFn: () => Promise<T>, forceRefresh = false): Promise<T> {
+  if (!forceRefresh) {
+    const cached = apiCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.data;
+    }
+  }
+  const data = await fetchFn();
+  apiCache.set(cacheKey, { data, timestamp: Date.now() });
+  return data;
+}
+// -----------------------------
+
 export const api = {
   repos: {
     create: (url: string) => fetchApi<Repository>("/repos", {
@@ -61,10 +78,17 @@ export const api = {
     get: (id: string) => fetchApi<Repository>(`/repos/${id}`),
     getCommits: (id: string, page = 1, limit = 50) => 
       fetchApi<GetCommitsResponse>(`/repos/${id}/commits?page=${page}&limit=${limit}`),
-    getEvolution: (id: string) => fetchApi<any>(`/repos/${id}/commits/evolution`),
-    getJourney: (id: string) => fetchApi<RepositoryJourney>(`/repos/${id}/journey`),
-    getJourneyInsights: (id: string, forceRefresh = false) => fetchApi<JourneyInsights>(`/repos/${id}/journey/insights${forceRefresh ? '?refresh=true' : ''}`),
-    getAnalytics: (id: string) => fetchApi<any>(`/repos/${id}/analytics`),
+    getEvolution: (id: string) => 
+      fetchWithCache(`evo_${id}`, () => fetchApi<any>(`/repos/${id}/commits/evolution`)),
+    getFunctionHistory: (id: string, filePath: string, functionName: string) => fetchApi<any>(`/repos/${id}/functions/history?filePath=${encodeURIComponent(filePath)}&functionName=${encodeURIComponent(functionName)}`),
+    getJourney: (id: string) => 
+      fetchWithCache(`journey_${id}`, () => fetchApi<RepositoryJourney>(`/repos/${id}/journey`)),
+    getJourneyInsights: (id: string, forceRefresh = false) => 
+      fetchWithCache(`insights_${id}`, () => fetchApi<JourneyInsights>(`/repos/${id}/journey/insights${forceRefresh ? '?refresh=true' : ''}`), forceRefresh),
+    getComparisonInsights: (id1: string, id2: string, forceRefresh = false) => 
+      fetchWithCache(`compare_${id1}_${id2}`, () => fetchApi<any>(`/repos/compare/${id1}/${id2}/insights${forceRefresh ? '?refresh=true' : ''}`), forceRefresh),
+    getAnalytics: (id: string) => 
+      fetchWithCache(`analytics_${id}`, () => fetchApi<any>(`/repos/${id}/analytics`)),
     search: (id: string, query: string, limit = 10) =>
       fetchApi<any[]>(`/repos/${id}/search?q=${encodeURIComponent(query)}&limit=${limit}`),
     sync: (id: string) => fetchApi<any>(`/repos/${id}/sync`, { method: "POST" }),

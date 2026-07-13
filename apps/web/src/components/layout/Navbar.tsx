@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "../../lib/supabase/client";
 
+import { usePathname } from "next/navigation";
+
 export function Navbar() {
   const [user, setUser] = useState<any>(null);
   const supabase = createClient();
+  const pathname = usePathname();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -26,6 +29,9 @@ export function Navbar() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
+
+  const isRepoPage = pathname?.startsWith("/repos/");
+  const currentRepoId = isRepoPage ? pathname.split("/")[2] : null;
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0a]/80 backdrop-blur-xl">
@@ -51,6 +57,9 @@ export function Navbar() {
           
           {user ? (
             <>
+              <Link href={currentRepoId ? `/compare?repo1=${currentRepoId}` : "/compare"} className="text-zinc-400 hover:text-white text-sm font-medium transition-colors">
+                Compare
+              </Link>
               <Link href="/dashboard" className="text-zinc-400 hover:text-white text-sm font-medium transition-colors">
                 Dashboard
               </Link>

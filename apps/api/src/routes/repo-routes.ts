@@ -11,11 +11,14 @@ import { startIndexingJob } from "../jobs/index-repo-job";
 import { startSyncJob } from "../jobs/sync-job";
 import { getRepoAnalytics } from "../services/analytics-service";
 import { getOrGenerateJourneyInsights } from "../services/insights-service";
+import { getOrGenerateComparisonInsights } from "../services/compare-service";
 import { rateLimit } from "express-rate-limit";
 import { semanticSearch } from "../services/search-service";
 import { createAppError } from "../middleware/error-handler";
 import { requireAuth, AuthenticatedRequest } from "../middleware/auth-middleware";
 import { generateRepositoryJourney } from "../services/journey-service";
+import { getFunctionHistory } from "../services/function-service";
+import * as path from "path";
 
 export const repoRoutes = Router();
 
@@ -214,6 +217,41 @@ repoRoutes.get("/:id/commits/evolution", async (req, res, next) => {
   }
 });
 
+// GET /api/repos/:id/functions/history — Get function-level history
+repoRoutes.get("/:id/functions/history", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const filePath = req.query.filePath as string;
+    const functionName = req.query.functionName as string;
+
+    if (!filePath || !functionName) {
+      throw createAppError("Missing required query parameters: 'filePath' and 'functionName'", 400);
+    }
+
+    const { data: repo, error } = await supabase
+      .from("repositories")
+      .select("owner, name")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!repo) throw createAppError("Repository not found", 404);
+
+    const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "./tmp/clones";
+    const repoPath = path.resolve(process.cwd(), CLONE_BASE_PATH, repo.owner, repo.name);
+
+    const history = await getFunctionHistory(repoPath, filePath, functionName);
+
+    res.json({
+      functionName,
+      filePath,
+      history
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/repos/:id/journey — Aggregated repository journey (milestones & activity)
 repoRoutes.get("/:id/journey", async (req, res, next) => {
   try {
@@ -243,6 +281,24 @@ repoRoutes.get("/:id/journey/insights", insightsLimiter, async (req, res, next) 
     next(err);
   }
 });
+
+// GET /api/repos/compare/:id1/:id2/insights — AI Summary comparing two repos
+repoRoutes.get("/compare/:id1/:id2/insights", insightsLimiter, async (req, res, next) => {
+  try {
+    const { id1, id2 } = req.params;
+    const forceRefresh = req.query.refresh === 'true';
+    
+    // Fetch journeys for both to pass to the AI if needed
+    const journey1 = await generateRepositoryJourney(id1);
+    const journey2 = await generateRepositoryJourney(id2);
+    
+    const insights = await getOrGenerateComparisonInsights(id1, id2, journey1, journey2, forceRefresh);
+    res.json(insights);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/repos/:id/save — Save a repository to the dashboard
 repoRoutes.post("/:id/save", requireAuth, async (req: AuthenticatedRequest, res, next) => {
   try {

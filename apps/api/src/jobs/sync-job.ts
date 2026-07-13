@@ -1,17 +1,12 @@
 import { supabase } from "../lib/db";
-import { cloneRepo, getCommitCount, fetchLatest } from "../services/clone-service";
-import { parseCommitsSince, ParsedCommit } from "../services/git-log-service";
-import { randomUUID } from "crypto";
+import { cloneRepo, fetchLatest } from "../services/clone-service";
+import { synchronizeCommits } from "../services/sync-engine";
+import { fetchGithubCommitCount } from "../services/github-service";
 
 /**
  * Start a lightweight sync job that fetches only NEW commits since the last sync.
- * This is independent from historical indexing and completes in seconds.
- * 
- * Flow:
- *   1. git fetch origin (on existing bare clone)
- *   2. git log <last_indexed_sha>..HEAD (only new commits)
- *   3. Insert new commits into DB
- *   4. Update metadata
+ * This uses the exact same robust engine as indexing, allowing it to seamlessly
+ * handle force-pushes, moved HEADs, and complex branch merges.
  */
 export async function startSyncJob(repoId: string, url: string, githubToken?: string) {
   runSyncPipeline(repoId, url, githubToken).catch((err) => {
@@ -40,52 +35,50 @@ async function runSyncPipeline(repoId: string, url: string, githubToken?: string
     const targetDir = await cloneRepo(url, githubToken);
     await fetchLatest(targetDir, githubToken);
 
-    // 2. Get updated total commit count
-    const newTotalCommits = await getCommitCount(targetDir);
+    // 2. Get updated total commit count from GitHub API for verification
+    const newTotalCommits = await fetchGithubCommitCount(url, githubToken).catch(e => {
+      console.error(`[chronocode-api] Sync verification: Failed to fetch GitHub count: ${e.message}`);
+      return repo.total_commits;
+    });
 
-    // 3. If we have a last_indexed_sha, fetch only commits since that SHA
-    let newCommits: ParsedCommit[] = [];
+    // 3. Run robust synchronization
+    // The engine automatically streams down from HEAD and stops the moment it hits
+    // commits already in the database, ensuring no commits are missed even if HEAD moved.
+    const { insertedCount, latestSha } = await synchronizeCommits(repoId, targetDir);
+
+    // 4. Update metadata
+    const { count: finalCount } = await supabase
+      .from("commits")
+      .select("*", { count: "exact", head: true })
+      .eq("repo_id", repoId);
+      
+    const actualCount = finalCount || 0;
+
+    let finalStatus = previousStatus === "indexing_history" ? "indexing_history" : "ready";
     
-    if (repo.last_indexed_sha) {
-      newCommits = await parseCommitsSince(targetDir, repo.last_indexed_sha);
-      console.log(`[chronocode-api] Sync found ${newCommits.length} new commits since ${repo.last_indexed_sha.substring(0, 7)}`);
-    } else {
-      // No previous SHA — this shouldn't happen in normal flow,
-      // but handle it gracefully by not re-indexing everything
-      console.log(`[chronocode-api] Sync: No last_indexed_sha, skipping delta fetch`);
+    if (newTotalCommits > 0 && actualCount < newTotalCommits) {
+      console.warn(`[chronocode-api] WARNING: Sync verification failed for ${url}. DB has ${actualCount}, GitHub reports ${newTotalCommits}.`);
+      finalStatus = "indexing_history"; // Prevent marking as ready if commits are missing
     }
 
-    // 4. Insert new commits (if any)
-    if (newCommits.length > 0) {
-      await bulkInsertNewCommits(repoId, newCommits);
-    }
+    const finalProgress = newTotalCommits > 0 
+      ? Math.min(Math.round((actualCount / Math.max(actualCount, newTotalCommits)) * 100 * 10) / 10, 100) 
+      : 100;
 
-    // 5. Get the latest SHA from HEAD for tracking
-    // The first commit in newCommits is the newest (git log outputs newest first)
-    const latestSha = newCommits.length > 0
-      ? newCommits[0]!.commit.sha
-      : repo.last_indexed_sha;
-
-    // 6. Update metadata
-    const newIndexedCount = (repo.indexed_commits || 0) + newCommits.length;
-    
     await supabase
       .from("repositories")
       .update({
         total_commits: newTotalCommits,
-        indexed_commits: newIndexedCount,
-        last_indexed_sha: latestSha,
-        indexing_progress: newTotalCommits > 0
-          ? Math.min(Math.round((newIndexedCount / newTotalCommits) * 100 * 10) / 10, 100)
-          : 100,
+        indexed_commits: actualCount,
+        ...(latestSha ? { last_indexed_sha: latestSha } : {}),
+        indexing_progress: finalProgress,
         last_indexed_at: new Date().toISOString(),
-        // Restore previous status (important: don't break ongoing indexing_history)
-        status: previousStatus === "indexing_history" ? "indexing_history" : "ready",
+        status: finalStatus,
         error_message: null,
       })
       .eq("id", repoId);
 
-    console.log(`[chronocode-api] Sync complete for ${repoId}: +${newCommits.length} commits, total ${newIndexedCount}`);
+    console.log(`[chronocode-api] Sync complete for ${repoId}: +${insertedCount} commits, total ${actualCount}`);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error(`[chronocode-api] Sync failed for ${repoId}:`, errorMessage);
@@ -99,81 +92,4 @@ async function runSyncPipeline(repoId: string, url: string, githubToken?: string
       })
       .eq("id", repoId);
   }
-}
-
-/**
- * Insert new commits from sync. Similar to bulkInsertCommits in index-repo-job,
- * but optimized for small batches (sync typically returns 1-50 new commits).
- */
-async function bulkInsertNewCommits(repoId: string, parsedCommits: ParsedCommit[]) {
-  const CHUNK_SIZE = 100;
-  let totalInserted = 0;
-
-  for (let i = 0; i < parsedCommits.length; i += CHUNK_SIZE) {
-    const chunk = parsedCommits.slice(i, i + CHUNK_SIZE);
-    const chunkShas = chunk.map(pc => pc.commit.sha);
-    
-    // Check for duplicates in this chunk
-    const { data: existingCommits, error: existingError } = await supabase
-      .from("commits")
-      .select("sha")
-      .eq("repo_id", repoId)
-      .in("sha", chunkShas);
-
-    if (existingError) {
-      console.error(`[chronocode-api] Sync error checking existing commits:`, existingError);
-      throw new Error(`Failed to check existing sync commits: ${existingError.message}`);
-    }
-
-    const existingShas = new Set(existingCommits?.map(c => c.sha) || []);
-    const newCommits = chunk.filter(pc => !existingShas.has(pc.commit.sha));
-
-    if (newCommits.length === 0) continue;
-
-    const commitsToInsert = newCommits.map(pc => ({
-      id: randomUUID(),
-      repo_id: repoId,
-      ...pc.commit,
-    }));
-
-    const { error: commitError } = await supabase
-      .from("commits")
-      .insert(commitsToInsert);
-
-    if (commitError) {
-      console.error(`[chronocode-api] Sync insert error:`, commitError);
-      throw new Error(`Failed to insert sync commits: ${commitError.message}`);
-    }
-
-    // Insert files
-    const filesToInsert = [];
-    for (let j = 0; j < newCommits.length; j++) {
-      const commitId = commitsToInsert[j]!.id;
-      for (const file of newCommits[j]!.files) {
-        filesToInsert.push({
-          commit_id: commitId,
-          ...file,
-        });
-      }
-    }
-
-    if (filesToInsert.length > 0) {
-      // Chunk file inserts as well
-      const FILE_CHUNK_SIZE = 2000;
-      for (let k = 0; k < filesToInsert.length; k += FILE_CHUNK_SIZE) {
-        const fileChunk = filesToInsert.slice(k, k + FILE_CHUNK_SIZE);
-        const { error: fileError } = await supabase
-          .from("commit_files")
-          .insert(fileChunk);
-
-        if (fileError) {
-          console.error(`[chronocode-api] Sync file insert error:`, fileError);
-        }
-      }
-    }
-    
-    totalInserted += newCommits.length;
-  }
-
-  console.log(`[chronocode-api] Sync: Inserted ${totalInserted} new commits.`);
 }

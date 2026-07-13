@@ -125,8 +125,8 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
   let finalMilestones = milestones;
   if (milestones.length > MAX_MILESTONES) {
     const chronoSorted = [...milestones].sort((a, b) => new Date(a.authored_at).getTime() - new Date(b.authored_at).getTime());
-    const firstM = chronoSorted[0];
-    const lastM = chronoSorted[chronoSorted.length - 1];
+    const firstM = chronoSorted[0]!;
+    const lastM = chronoSorted[chronoSorted.length - 1]!;
     
     const middle = chronoSorted.slice(1, -1)
       .sort((a, b) => b.impact_score - a.impact_score)
@@ -216,8 +216,8 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
     : 0;
 
   const totalCommits = repoMeta?.total_commits || totalCommitsProcessed;
-  const monthsActive = activity.length || 1;
-  const development_velocity = Math.round(totalCommits / monthsActive);
+  const ageMonths = Math.max(1, ageDays / 30);
+  const development_velocity = Math.round(totalCommits / ageMonths);
   const longest_inactive_period_days = Math.floor(longestInactiveGapMs / (1000 * 60 * 60 * 24));
   const average_commit_size = commitsWithStats > 0 ? Math.round((totalInsertions + totalDeletions) / commitsWithStats) : 0;
   const contributorsCount = authors.size;
@@ -287,8 +287,8 @@ function calculatePhases(activity: JourneyActivityNode[]): JourneyPhase[] {
   if (p1End > 0) {
     phases.push({
       name: "Initial Development",
-      start_date: activity[0].date,
-      end_date: activity[p1End].date,
+      start_date: activity[0]!.date,
+      end_date: activity[p1End]!.date,
       color: "rgba(59, 130, 246, 0.1)", // Blue
     });
   }
@@ -296,8 +296,8 @@ function calculatePhases(activity: JourneyActivityNode[]): JourneyPhase[] {
   if (pLastStart > p1End) {
     phases.push({
       name: "Rapid Growth & Expansion",
-      start_date: activity[p1End + 1].date,
-      end_date: activity[pLastStart].date,
+      start_date: activity[p1End + 1]!.date,
+      end_date: activity[pLastStart]!.date,
       color: "rgba(139, 92, 246, 0.1)", // Purple
     });
     
@@ -307,15 +307,15 @@ function calculatePhases(activity: JourneyActivityNode[]): JourneyPhase[] {
     
     phases.push({
       name: avgRecent < avgHistorical * 0.5 ? "Stabilization & Maintenance" : "Active Development",
-      start_date: activity[Math.min(pLastStart + 1, totalMonths - 1)].date,
-      end_date: activity[totalMonths - 1].date,
+      start_date: activity[Math.min(pLastStart + 1, totalMonths - 1)]!.date,
+      end_date: activity[totalMonths - 1]!.date,
       color: avgRecent < avgHistorical * 0.5 ? "rgba(107, 114, 128, 0.1)" : "rgba(16, 185, 129, 0.1)",
     });
   } else {
     phases.push({
       name: "Active Development",
-      start_date: activity[0].date,
-      end_date: activity[activity.length - 1].date,
+      start_date: activity[0]!.date,
+      end_date: activity[activity.length - 1]!.date,
       color: "rgba(16, 185, 129, 0.1)",
     });
   }
