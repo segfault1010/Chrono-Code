@@ -178,14 +178,7 @@ async function runIndexingPipeline(repoId: string, url: string, githubToken?: st
 
     console.log(`[chronocode-api] Indexing complete for ${url}: ${finalCount || totalIndexed} commits total`);
 
-    // Automatically trigger AI background analysis now that indexing is complete
-    try {
-      console.log(`[chronocode-api] Queueing automatic AI analysis for ${url}...`);
-      const journey = await generateRepositoryJourney(repoId);
-      await getOrGenerateJourneyInsights(repoId, journey, true); // forceRefresh=true for initial index
-    } catch (aiErr) {
-      console.error(`[chronocode-api] Failed to start AI analysis for ${url}:`, aiErr);
-    }
+    // AI analysis is now triggered manually by the user via the frontend.
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     await updateRepoStatus(repoId, "failed", errorMessage);
@@ -291,14 +284,7 @@ async function runResumePipeline(repoId: string, url: string, githubToken?: stri
 
     console.log(`[chronocode-api] Resume indexing complete for ${url}`);
 
-    // Automatically trigger AI background analysis now that indexing is complete
-    try {
-      console.log(`[chronocode-api] Queueing automatic AI analysis for ${url}...`);
-      const journey = await generateRepositoryJourney(repoId);
-      await getOrGenerateJourneyInsights(repoId, journey, true);
-    } catch (aiErr) {
-      console.error(`[chronocode-api] Failed to start AI analysis for ${url}:`, aiErr);
-    }
+    // AI analysis is now triggered manually by the user via the frontend.
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     await updateRepoStatus(repoId, "failed", errorMessage);

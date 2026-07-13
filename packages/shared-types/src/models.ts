@@ -144,6 +144,7 @@ export interface RepositoryJourney {
 export interface JourneyInsights {
   status: "generating" | "completed" | "error";
   analyzed_commit_sha: string;
+  updated_at?: string;
   ai_summary?: string;
   health_indicators?: {
     label: string;

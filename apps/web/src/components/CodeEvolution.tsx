@@ -133,6 +133,15 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
     return { minTime, maxTime, span };
   }, [journey]);
 
+  const years = useMemo(() => {
+    if (!timeScale) return [];
+    const startYear = new Date(timeScale.minTime).getFullYear();
+    const endYear = new Date(timeScale.maxTime).getFullYear();
+    const y = [];
+    for (let i = startYear; i <= endYear; i++) y.push(i);
+    return y;
+  }, [timeScale]);
+
   if (loading && !journey) {
     return (
       <div className="w-full h-96 flex items-center justify-center border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-elevated)]/30">
@@ -177,27 +186,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
   };
 
   return (
-    <div className="relative w-full rounded-2xl border border-[var(--color-border)] bg-[#0A0A0A] overflow-y-auto custom-scrollbar flex flex-col shadow-2xl h-[calc(100vh-120px)]">
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          height: 8px;
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #0A0A0A;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.2);
-        }
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(255, 255, 255, 0.1) #0A0A0A;
-        }
-      `}</style>
+    <div className="relative w-full rounded-2xl border border-[var(--color-border)] bg-[#0A0A0A] flex flex-col shadow-2xl min-h-[500px]">
       
       {/* 1. Repository Story (AI) */}
       <div className="flex-none p-6 border-b border-white/10 bg-gradient-to-r from-[#111] to-[#1a1a1a]">
@@ -226,7 +215,14 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
              <p className="text-xs text-[var(--color-accent-primary)] mt-3">Analyzing repository evolution...</p>
            </div>
         ) : insights?.status === 'completed' && insights.ai_summary ? (
-           <p className="text-sm text-gray-300 leading-relaxed max-w-5xl">{insights.ai_summary}</p>
+           <div className="flex flex-col gap-2">
+             <p className="text-sm text-gray-300 leading-relaxed max-w-5xl">{insights.ai_summary}</p>
+             {insights.updated_at && (
+               <span className="text-[10px] text-gray-500 font-mono">
+                 Generated on {new Date(insights.updated_at).toLocaleString()}
+               </span>
+             )}
+           </div>
         ) : (
            <div className="flex flex-col items-start gap-3">
              <p className="text-sm text-gray-400">An AI-generated narrative of this repository's evolution is available.</p>
@@ -323,7 +319,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
           className={`flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar relative transition-all duration-300 ${selectedMilestone ? 'mr-96' : ''}`}
         >
           <div 
-            className="absolute top-0 bottom-0 left-8 right-8 pointer-events-none"
+            className="absolute top-0 bottom-0 left-0 right-0 pointer-events-none"
             style={{ minWidth: `${minWidth}px` }}
           >
             {/* Playback Mask */}
@@ -371,6 +367,23 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
                   title={`${node.date}: ${node.count} commits`}
                 />
               ))}
+            </div>
+
+            {/* Bottom X-Axis (Years) */}
+            <div className="absolute bottom-2 left-0 right-0 h-4 pointer-events-none z-10 opacity-50">
+              {timeScale && years.map(year => {
+                const time = new Date(`${year}-01-01`).getTime();
+                const xPercent = 5 + ((time - timeScale.minTime) / timeScale.span) * 90;
+                return (
+                  <div 
+                    key={year} 
+                    className="absolute text-[10px] text-white font-bold font-mono tracking-widest whitespace-nowrap" 
+                    style={{ left: `${xPercent}%`, transform: 'translateX(-50%)' }}
+                  >
+                    {year}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Central Axis Line */}
@@ -435,7 +448,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
                   {/* Elegant Hover Tooltip */}
                   {!isSelected && (
                     <div 
-                      className={`absolute ${isAbove ? 'bottom-full mb-3' : 'top-full mt-3'} left-1/2 -translate-x-1/2 w-64 p-3 bg-[#111] border border-white/10 rounded-lg shadow-2xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all pointer-events-none z-50`}
+                      className={`absolute ${isAbove ? 'bottom-full mb-3' : 'top-full mt-3'} ${xPercent < 15 ? 'left-0' : xPercent > 85 ? 'right-0' : 'left-1/2 -translate-x-1/2'} w-64 p-3 bg-[#111] border border-white/10 rounded-lg shadow-2xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all pointer-events-none z-50`}
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span 

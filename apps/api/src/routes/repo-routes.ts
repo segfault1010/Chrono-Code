@@ -228,7 +228,7 @@ repoRoutes.get("/:id/journey", async (req, res, next) => {
 // GET /api/repos/:id/journey/insights — AI Summary and Health
 const insightsLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 20,
+  max: 1000,
   message: { error: "AI insight rate limit exceeded." },
 });
 

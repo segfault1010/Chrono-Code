@@ -45,7 +45,13 @@ export async function cloneRepo(url: string, githubToken?: string): Promise<stri
       // It's a valid bare repo, fetch the latest commits
       console.log(`[chronocode-api] Repo exists locally. Fetching latest...`);
       try {
-        await gitVerify.fetch(["origin", "+refs/heads/*:refs/heads/*", "--prune"]);
+        const isShallow = await gitVerify.revparse(["--is-shallow-repository"]).catch(() => "false");
+        const fetchArgs = ["origin", "+refs/heads/*:refs/heads/*", "--prune"];
+        if (isShallow.trim() === "true") {
+          console.log(`[chronocode-api] Unshallowing repository...`);
+          fetchArgs.push("--unshallow");
+        }
+        await gitVerify.fetch(fetchArgs);
       } catch(e) {
         console.warn(`[chronocode-api] Failed to fetch latest, continuing with local...`);
       }

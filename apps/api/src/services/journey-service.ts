@@ -22,6 +22,7 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
   let longestInactiveGapMs = 0;
   let previousCommitDate: Date | null = null;
   let totalCommitsProcessed = 0;
+  let lastCommitProcessed: any = null;
 
   // Get repository metadata to resolve local path
   const { data: repoMeta } = await supabase
@@ -54,6 +55,7 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
     }
 
     for (const commit of commits) {
+      lastCommitProcessed = commit;
       // 1. Activity Mapping & General Stats
       authors.add(commit.author_name);
       totalCommitsProcessed++;
@@ -97,6 +99,23 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
     }
   }
 
+  if (lastCommitProcessed) {
+    const existing = milestones.find(m => m.sha === lastCommitProcessed.sha);
+    if (!existing) {
+      milestones.push({
+        sha: lastCommitProcessed.sha,
+        message: lastCommitProcessed.message,
+        author_name: lastCommitProcessed.author_name,
+        authored_at: lastCommitProcessed.authored_at,
+        category: "feature",
+        impact_score: 10,
+        is_merge: false,
+      });
+    } else {
+      existing.impact_score = Math.max(existing.impact_score, 10);
+    }
+  }
+
   // Convert activity map to array
   const activity: JourneyActivityNode[] = Array.from(activityMap.entries())
     .map(([date, count]) => ({ date, count }))
@@ -105,10 +124,18 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
   // Process Milestones
   let finalMilestones = milestones;
   if (milestones.length > MAX_MILESTONES) {
-    finalMilestones = milestones
+    const chronoSorted = [...milestones].sort((a, b) => new Date(a.authored_at).getTime() - new Date(b.authored_at).getTime());
+    const firstM = chronoSorted[0];
+    const lastM = chronoSorted[chronoSorted.length - 1];
+    
+    const middle = chronoSorted.slice(1, -1)
       .sort((a, b) => b.impact_score - a.impact_score)
-      .slice(0, MAX_MILESTONES)
+      .slice(0, MAX_MILESTONES - 2);
+      
+    finalMilestones = [firstM, ...middle, lastM]
       .sort((a, b) => new Date(a.authored_at).getTime() - new Date(b.authored_at).getTime());
+  } else {
+    finalMilestones = milestones.sort((a, b) => new Date(a.authored_at).getTime() - new Date(b.authored_at).getTime());
   }
 
   // Enhance milestones with exact git diff stats (since we don't store them in DB for all 100k commits)
