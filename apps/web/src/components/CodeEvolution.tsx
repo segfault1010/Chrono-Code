@@ -90,12 +90,27 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
     
     fetchJourney();
     
-    let interval: any;
-    if (isIndexing) {
-      interval = setInterval(fetchJourney, 5000);
-    }
-    return () => clearInterval(interval);
   }, [repo.id, isIndexing, fetchInsights, insights]);
+
+  // Handle Polling for background analytics
+  useEffect(() => {
+    const isGenerating = journey?._meta?.status === 'pending' || journey?._meta?.status === 'queued' || journey?._meta?.status === 'computing';
+    
+    if (isIndexing || isGenerating) {
+      const interval = setInterval(async () => {
+        try {
+          const data = await api.repos.getJourney(repo.id);
+          setJourney(data);
+          if (data.milestones && data.milestones.length > 0 && insights?.status !== 'completed' && !insightsLoading) {
+            fetchInsights();
+          }
+        } catch (err: any) {
+          setError(err.message);
+        }
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [repo.id, isIndexing, journey?._meta?.status, insights?.status, insightsLoading, fetchInsights]);
 
   // Handle Playback
   useEffect(() => {
@@ -125,7 +140,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
 
 
   const timeScale = useMemo(() => {
-    if (!journey || journey.milestones.length === 0) return null;
+    if (!journey || !journey.milestones || journey.milestones.length === 0) return null;
     const times = journey.milestones.map(m => new Date(m.authored_at).getTime());
     const minTime = Math.min(...times);
     const maxTime = Math.max(...times);
@@ -142,12 +157,16 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
     return y;
   }, [timeScale]);
 
-  if (loading && !journey) {
+  const isGenerating = journey?._meta?.status === 'pending' || journey?._meta?.status === 'queued' || journey?._meta?.status === 'computing';
+
+  if ((loading && !journey) || (isGenerating && (!journey?.milestones || journey.milestones.length === 0))) {
     return (
       <div className="w-full h-96 flex items-center justify-center border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-elevated)]/30">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-[var(--color-accent-primary)] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[var(--color-text-tertiary)] text-sm font-medium tracking-wide">Mapping Repository Journey...</p>
+          <p className="text-[var(--color-text-tertiary)] text-sm font-medium tracking-wide">
+            {isGenerating ? "Analyzing repository journey in the background..." : "Mapping Repository Journey..."}
+          </p>
         </div>
       </div>
     );
@@ -161,7 +180,16 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
     );
   }
 
-  if (!journey || journey.milestones.length === 0) {
+  if (journey?._meta?.status === 'failed') {
+    return (
+      <div className="w-full p-6 text-center border border-[var(--color-error)] rounded-xl bg-[var(--color-error-bg)] text-[var(--color-error)]">
+        <h3 className="font-bold mb-2">Code Evolution Analytics Failed</h3>
+        <p className="text-sm">{journey._meta.error_message || "An unexpected error occurred during background processing."}</p>
+      </div>
+    );
+  }
+
+  if (!journey || !journey.milestones || journey.milestones.length === 0) {
     return <div className="text-[var(--color-text-tertiary)] text-center py-8">No milestones found yet.</div>;
   }
 
@@ -191,10 +219,19 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
       {/* 1. Repository Story (AI) */}
       <div className="flex-none p-6 border-b border-white/10 bg-gradient-to-r from-[#111] to-[#1a1a1a]">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xl font-bold text-white tracking-wide flex items-center gap-2">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><path d="M2 15h10"/><path d="M9 18l3-3-3-3"/></svg>
-            Repository Story
-          </h3>
+          <div className="flex items-center gap-4">
+            <h3 className="text-xl font-bold text-white tracking-wide flex items-center gap-2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><path d="M2 15h10"/><path d="M9 18l3-3-3-3"/></svg>
+              Repository Story
+            </h3>
+            {journey?._meta?.generated_at && (
+              <span className="text-xs text-gray-500">
+                Generated at {new Date(journey._meta.generated_at).toLocaleString()}
+                {journey._meta.status === 'outdated' && " (Update in progress...)"}
+                {journey._meta.status === 'computing' && " (Computing...)"}
+              </span>
+            )}
+          </div>
           {insights?.status === 'completed' && (
             <button
               onClick={() => fetchInsights(false, true)}

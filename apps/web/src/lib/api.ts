@@ -64,7 +64,16 @@ async function fetchWithCache<T>(cacheKey: string, fetchFn: () => Promise<T>, fo
     }
   }
   const data = await fetchFn();
-  apiCache.set(cacheKey, { data, timestamp: Date.now() });
+  
+  // Do not cache incomplete background jobs
+  const isGenerating = (data as any)?._meta?.status === 'pending' || 
+                       (data as any)?._meta?.status === 'queued' || 
+                       (data as any)?._meta?.status === 'computing';
+                       
+  if (!isGenerating) {
+    apiCache.set(cacheKey, { data, timestamp: Date.now() });
+  }
+  
   return data;
 }
 // -----------------------------

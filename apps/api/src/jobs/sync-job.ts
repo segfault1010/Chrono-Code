@@ -2,6 +2,7 @@ import { supabase } from "../lib/db";
 import { cloneRepo, fetchLatest } from "../services/clone-service";
 import { synchronizeCommits } from "../services/sync-engine";
 import { fetchGithubCommitCount } from "../services/github-service";
+import { queueAnalyticsGeneration } from "../services/analytics-pipeline";
 
 /**
  * Start a lightweight sync job that fetches only NEW commits since the last sync.
@@ -31,9 +32,13 @@ async function runSyncPipeline(repoId: string, url: string, githubToken?: string
   const previousStatus = repo.status;
 
   try {
+    const tPipelineStart = performance.now();
+
     // 1. Fetch latest from origin
+    const tCloneStart = performance.now();
     const targetDir = await cloneRepo(url, githubToken);
     await fetchLatest(targetDir, githubToken);
+    const durationClone = Math.round(performance.now() - tCloneStart);
 
     // 2. Get updated total commit count from GitHub API for verification
     const newTotalCommits = await fetchGithubCommitCount(url, githubToken).catch(e => {
@@ -42,11 +47,12 @@ async function runSyncPipeline(repoId: string, url: string, githubToken?: string
     });
 
     // 3. Run robust synchronization
-    // The engine automatically streams down from HEAD and stops the moment it hits
-    // commits already in the database, ensuring no commits are missed even if HEAD moved.
+    const tIndexStart = performance.now();
     const { insertedCount, latestSha } = await synchronizeCommits(repoId, targetDir);
+    const durationIndex = Math.round(performance.now() - tIndexStart);
 
-    // 4. Update metadata
+    // 4. Update metadata and state to Verifying
+    const tDbWriteStart = performance.now();
     const { count: finalCount } = await supabase
       .from("commits")
       .select("*", { count: "exact", head: true })
@@ -54,12 +60,7 @@ async function runSyncPipeline(repoId: string, url: string, githubToken?: string
       
     const actualCount = finalCount || 0;
 
-    let finalStatus = previousStatus === "indexing_history" ? "indexing_history" : "ready";
-    
-    if (newTotalCommits > 0 && actualCount < newTotalCommits) {
-      console.warn(`[chronocode-api] WARNING: Sync verification failed for ${url}. DB has ${actualCount}, GitHub reports ${newTotalCommits}.`);
-      finalStatus = "indexing_history"; // Prevent marking as ready if commits are missing
-    }
+    let finalStatus = previousStatus === "indexing_history" ? "indexing_history" : "verifying";
 
     const finalProgress = newTotalCommits > 0 
       ? Math.min(Math.round((actualCount / Math.max(actualCount, newTotalCommits)) * 100 * 10) / 10, 100) 
@@ -77,8 +78,26 @@ async function runSyncPipeline(repoId: string, url: string, githubToken?: string
         error_message: null,
       })
       .eq("id", repoId);
+    const durationDbWrite = Math.round(performance.now() - tDbWriteStart);
 
-    console.log(`[chronocode-api] Sync complete for ${repoId}: +${insertedCount} commits, total ${actualCount}`);
+    // 5. Queue Analytics (Independent)
+    const tAnalyticsStart = performance.now();
+    const shaToUse = latestSha || repo.last_indexed_sha || "unknown";
+    await queueAnalyticsGeneration(repoId, ["journey", "contributors", "activity", "evolution"], shaToUse);
+    const durationAnalytics = Math.round(performance.now() - tAnalyticsStart);
+
+    // 6. Fire-and-forget Event-Driven Verification
+    if (finalStatus === "verifying") {
+      const { runAsyncVerification } = require("../services/sync-engine");
+      runAsyncVerification(repoId, targetDir, newTotalCommits).catch((err: any) => {
+        console.error(`[chronocode-api] Unhandled error triggering async verification for ${repoId}:`, err);
+      });
+    }
+
+    const durationTotal = Math.round(performance.now() - tPipelineStart);
+    
+    console.log(`[chronocode-api] [Profiling] Sync complete for ${repoId}: +${insertedCount} commits, total ${actualCount}.`);
+    console.log(`[chronocode-api] [Profiling] Clone: ${durationClone}ms | Index: ${durationIndex}ms | DB Write: ${durationDbWrite}ms | Analytics Queueing: ${durationAnalytics}ms | Total Pipeline Duration: ${durationTotal}ms`);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error(`[chronocode-api] Sync failed for ${repoId}:`, errorMessage);

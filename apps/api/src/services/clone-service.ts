@@ -8,7 +8,7 @@ import { createAppError } from "../middleware/error-handler";
 const execAsync = promisify(exec);
 const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "./tmp/clones";
 
-export async function validateGithubUrl(rawUrl: string): Promise<{ owner: string; name: string }> {
+export async function validateGithubUrl(rawUrl: string): Promise<{ owner: string; name: string; normalizedUrl: string }> {
   console.log(`[Validation] Raw input: "${rawUrl}"`);
   
   try {
@@ -48,7 +48,7 @@ export async function validateGithubUrl(rawUrl: string): Promise<{ owner: string
     console.log(`[Validation] Extracted - Owner: "${owner}", Repository: "${name}"`);
     console.log(`[Validation] Result: SUCCESS`);
     
-    return { owner, name };
+    return { owner, name, normalizedUrl: url };
   } catch (err: any) {
     console.log(`[Validation] Result: FAILED - ${err.message}`);
     throw createAppError("Invalid GitHub URL. Must be like https://github.com/owner/repo", 400);
@@ -56,7 +56,7 @@ export async function validateGithubUrl(rawUrl: string): Promise<{ owner: string
 }
 
 export async function cloneRepo(url: string, githubToken?: string): Promise<string> {
-  const { owner, name } = await validateGithubUrl(url);
+  const { owner, name, normalizedUrl } = await validateGithubUrl(url);
   // Resolve against api directory root, assuming cwd is apps/api
   const targetDir = path.resolve(process.cwd(), CLONE_BASE_PATH, owner, name);
   
@@ -89,11 +89,11 @@ export async function cloneRepo(url: string, githubToken?: string): Promise<stri
   }
 
   try {
-    console.log(`[chronocode-api] Cloning ${url} to ${targetDir}...`);
+    console.log(`[chronocode-api] Cloning ${normalizedUrl} to ${targetDir}...`);
     // Inject token for private repos
-    let cloneUrl = url;
+    let cloneUrl = normalizedUrl;
     if (githubToken) {
-      cloneUrl = url.replace("https://", `https://${githubToken}@`);
+      cloneUrl = normalizedUrl.replace("https://", `https://${githubToken}@`);
     }
 
     // bare clone saves space and time, and allows getting diffs via git show

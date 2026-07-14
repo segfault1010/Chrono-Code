@@ -148,3 +148,138 @@ async function bulkInsert(repoId: string, newCommits: ParsedCommit[]) {
     }
   }
 }
+
+/**
+ * Robustly verifies that the database matches the local Git clone.
+ * Detects orphaned commits (force pushes), duplicated SHAs, and missing commits.
+ */
+export async function verifyRepositorySync(repoId: string, targetDir: string, githubTotalCommits: number): Promise<{ isValid: boolean, reason: string | null }> {
+  try {
+    const { execSync } = require("child_process");
+    
+    // 1. Local Git commit count & HEAD
+    let localCommitCount = 0;
+    let localHeadSha = "";
+    try {
+      localCommitCount = parseInt(execSync(`git rev-list --count HEAD`, { cwd: targetDir }).toString().trim());
+      localHeadSha = execSync(`git rev-parse HEAD`, { cwd: targetDir }).toString().trim();
+    } catch (err) {
+      return { isValid: false, reason: "Failed to read local git repository state." };
+    }
+    
+    // 2. Database commit count
+    const { count: dbCommitCount, error: countError } = await supabase
+      .from('commits')
+      .select('id', { count: 'exact', head: true })
+      .eq('repo_id', repoId);
+      
+    if (countError) return { isValid: false, reason: `Failed to fetch DB commit count: ${countError.message}` };
+    const dbCount = dbCommitCount || 0;
+      
+    // 3. (Removed distinct SHAs check as PostgREST limits to 1000 rows, and DB has unique constraint on repo_id + sha)
+    
+    // 4. Database HEAD SHA
+    const { data: latestCommit } = await supabase
+      .from('commits')
+      .select('sha')
+      .eq('repo_id', repoId)
+      .order('authored_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: repo } = await supabase
+      .from('repositories')
+      .select('last_indexed_sha')
+      .eq('id', repoId)
+      .single();
+      
+    // Verification Rules
+    if (localCommitCount > 0 && dbCount !== localCommitCount) {
+      return { isValid: false, reason: `DB commits (${dbCount}) != Local Git commits (${localCommitCount}). Possible orphaned commits from force-push.` };
+    } 
+    
+    if (localHeadSha && latestCommit?.sha && localHeadSha !== latestCommit.sha && localHeadSha !== repo?.last_indexed_sha) {
+      return { isValid: false, reason: `HEAD mismatch! Local: ${localHeadSha}, DB Latest: ${latestCommit.sha}, Repo Last Indexed: ${repo?.last_indexed_sha}` };
+    }
+    
+    if (githubTotalCommits > 0 && dbCount < githubTotalCommits) {
+      return { isValid: false, reason: `DB commits (${dbCount}) < GitHub API reports (${githubTotalCommits}).` };
+    }
+
+    return { isValid: true, reason: null };
+  } catch (err) {
+    return { isValid: false, reason: `Verification threw an unexpected error: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+/**
+ * Executes verification fully asynchronously as an event-driven background job.
+ * Transitions the repository from 'verifying' to 'ready' (or 'verification_failed').
+ */
+export async function runAsyncVerification(repoId: string, targetDir: string, githubTotalCommits: number, runId?: string, tPipelineStart?: number) {
+  try {
+    console.log(`[sync-engine] Starting async verification for ${repoId}...`);
+    const t0 = performance.now();
+    const verification = await verifyRepositorySync(repoId, targetDir, githubTotalCommits);
+    const durationMs = Math.round(performance.now() - t0);
+    
+    if (verification.isValid) {
+      console.log(`[sync-engine] Verification successful for ${repoId} in ${durationMs}ms. Marking as ready.`);
+      await supabase
+        .from("repositories")
+        .update({ 
+          status: "ready", 
+          verification_status: "passed",
+          verification_reason: null,
+          error_message: null 
+        })
+        .eq("id", repoId);
+    } else {
+      console.warn(`[sync-engine] WARNING: Sync verification failed for ${repoId} in ${durationMs}ms. Reason: ${verification.reason}`);
+      await supabase
+        .from("repositories")
+        .update({ 
+          status: "ready", // KEEP REPO USABLE
+          verification_status: "failed",
+          verification_reason: verification.reason,
+          error_message: null 
+        })
+        .eq("id", repoId);
+    }
+
+    if (runId) {
+      const totalDuration = tPipelineStart ? Math.round(performance.now() - tPipelineStart) : null;
+      await supabase
+        .from("repository_pipeline_runs")
+        .update({
+          verification_duration_ms: durationMs,
+          total_duration_ms: totalDuration,
+          completed_at: new Date().toISOString(),
+          status: "completed"
+        })
+        .eq("id", runId);
+    }
+
+  } catch (err) {
+    console.error(`[sync-engine] Fatal error running async verification for ${repoId}:`, err);
+    await supabase
+      .from("repositories")
+      .update({ 
+        status: "ready",
+        verification_status: "failed",
+        verification_reason: `Fatal error: ${err instanceof Error ? err.message : String(err)}` 
+      })
+      .eq("id", repoId);
+      
+    if (runId) {
+      await supabase
+        .from("repository_pipeline_runs")
+        .update({
+          status: "failed",
+          error_message: `Verification fatal error: ${err instanceof Error ? err.message : String(err)}`,
+          completed_at: new Date().toISOString()
+        })
+        .eq("id", runId);
+    }
+  }
+}

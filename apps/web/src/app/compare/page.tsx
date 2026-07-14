@@ -2,10 +2,18 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { CompareDashboard } from "../../components/CompareDashboard";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { api } from "../../lib/api";
 
 export default function ComparePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-white">Loading comparison...</div>}>
+      <ComparePageContent />
+    </Suspense>
+  );
+}
+
+function ComparePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   

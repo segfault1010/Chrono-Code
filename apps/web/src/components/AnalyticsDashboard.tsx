@@ -28,29 +28,62 @@ export function AnalyticsDashboard({ repoId, isIndexing }: AnalyticsDashboardPro
     };
     
     fetchAnalytics();
+  }, [repoId, isIndexing]);
 
-    // Poll regularly if still indexing
+  // Handle Polling for background analytics
+  useEffect(() => {
+    const isGenerating = data?._meta?.status === 'pending' || data?._meta?.status === 'queued' || data?._meta?.status === 'computing';
+    
+    // Poll regularly if still indexing or generating analytics
     let interval: any;
-    if (isIndexing) {
-      interval = setInterval(fetchAnalytics, 3000);
+    if (isIndexing || isGenerating) {
+      interval = setInterval(async () => {
+        try {
+          const result = await api.repos.getAnalytics(repoId);
+          setData(result);
+        } catch (err: any) {
+          if (!data) setError(err.message || "Failed to load analytics");
+        }
+      }, 3000);
     } else {
       // Even if not indexing, maybe someone else pushed? Poll every 30s.
-      interval = setInterval(fetchAnalytics, 30000);
+      interval = setInterval(async () => {
+        try {
+          const result = await api.repos.getAnalytics(repoId);
+          setData(result);
+        } catch (err: any) {
+          if (!data) setError(err.message || "Failed to load analytics");
+        }
+      }, 30000);
     }
 
     return () => clearInterval(interval);
-  }, [repoId, isIndexing]);
+  }, [repoId, isIndexing, data?._meta?.status]);
 
-  if (isLoading && !data) {
+  const isGenerating = data?._meta?.status === 'pending' || data?._meta?.status === 'queued' || data?._meta?.status === 'computing';
+
+  if ((isLoading && !data) || (isGenerating && (!data?.topContributors || data.topContributors.length === 0))) {
     return (
-      <div className="flex justify-center py-12 animate-fade-in">
+      <div className="flex flex-col items-center justify-center py-12 gap-3 animate-fade-in border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-elevated)]/30 h-64">
         <div className="w-8 h-8 rounded-full border-2 border-[var(--color-accent-primary)] border-t-transparent animate-spin"></div>
+        <p className="text-[var(--color-text-tertiary)] text-sm font-medium tracking-wide">
+          {isGenerating ? "Analyzing contributor activity in the background..." : "Loading analytics..."}
+        </p>
       </div>
     );
   }
 
   if (error && !data) {
     return <div className="text-[var(--color-error)] py-8 text-center">{error}</div>;
+  }
+
+  if (data?._meta?.status === 'failed') {
+    return (
+      <div className="text-[var(--color-error)] py-8 text-center border border-[var(--color-error)] rounded-xl bg-[var(--color-error-bg)]">
+        <h3 className="font-bold mb-2">Analytics Computation Failed</h3>
+        <p className="text-sm">{data._meta.error_message || "An unexpected error occurred during background processing."}</p>
+      </div>
+    );
   }
 
   if (!data) return null;
@@ -84,6 +117,14 @@ export function AnalyticsDashboard({ repoId, isIndexing }: AnalyticsDashboardPro
         <div className="bg-blue-500/10 border border-blue-500/30 text-blue-400 px-4 py-3 rounded-xl flex items-center gap-3 animate-pulse">
            <div className="w-4 h-4 rounded-full border-2 border-blue-400 border-t-transparent animate-spin"></div>
            <p className="text-sm font-medium">Analytics are updating live as repository history is processed...</p>
+        </div>
+      )}
+
+      {data._meta?.generated_at && (
+        <div className="text-xs text-gray-500 flex justify-end">
+          Analytics generated at {new Date(data._meta.generated_at).toLocaleString()}
+          {data._meta.status === 'outdated' && " (Update in progress...)"}
+          {data._meta.status === 'computing' && " (Computing...)"}
         </div>
       )}
 

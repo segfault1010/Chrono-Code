@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { supabase } from "../lib/db";
 import { createAppError } from "../middleware/error-handler";
+import { getCachedAnalytics } from "../services/analytics-pipeline";
 
 export const analyticsRoutes = Router({ mergeParams: true });
 
@@ -9,33 +10,36 @@ analyticsRoutes.get("/", async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // 1. Get total commits and unique contributors count
-    const { count: totalCommits, error: totalError } = await supabase
+    const [contribRes, activityRes] = await Promise.all([
+      getCachedAnalytics(id, "contributors"),
+      getCachedAnalytics(id, "activity")
+    ]);
+
+    // We can just query total_commits from the repositories table or commits table instantly
+    const { count: totalCommits } = await supabase
       .from("commits")
       .select("sha", { count: "exact", head: true })
       .eq("repo_id", id);
-      
-    if (totalError) throw totalError;
 
-    // We can't do COUNT(DISTINCT author_name) in postgrest easily without RPC, 
-    // but we can just use the top contributors to approximate or leave it out.
-    
-    // 2. Get top contributors
-    const { data: contributors, error: contribError } = await supabase
-      .rpc("get_top_contributors", { match_repo_id: id, limit_count: 10 });
-      
-    if (contribError) throw contribError;
+    // Merge metadata
+    const statuses = [contribRes.status, activityRes.status];
+    const overallStatus = statuses.includes("failed") ? "failed" 
+                        : statuses.includes("queued") || statuses.includes("computing") ? "computing" 
+                        : statuses.includes("outdated") ? "outdated" 
+                        : "ready";
 
-    // 3. Get activity timeline (last 30 days)
-    const { data: activity, error: actError } = await supabase
-      .rpc("get_commit_activity", { match_repo_id: id, days_limit: 30 });
-
-    if (actError) throw actError;
+    const errorMessages = [contribRes.error_message, activityRes.error_message].filter(Boolean);
 
     res.json({
       totalCommits: totalCommits || 0,
-      topContributors: contributors || [],
-      activityTimeline: activity || [],
+      topContributors: Array.isArray(contribRes.data) ? contribRes.data : [],
+      activityTimeline: Array.isArray(activityRes.data) ? activityRes.data : [],
+      _meta: {
+        status: overallStatus,
+        generated_at: activityRes.generated_at, // Use one as reference
+        analytics_version: activityRes.analytics_version,
+        error_message: errorMessages.length > 0 ? errorMessages.join("; ") : null
+      }
     });
   } catch (err) {
     next(err);

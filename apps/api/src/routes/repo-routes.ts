@@ -12,12 +12,14 @@ import { startSyncJob } from "../jobs/sync-job";
 import { getRepoAnalytics } from "../services/analytics-service";
 import { getOrGenerateJourneyInsights } from "../services/insights-service";
 import { getOrGenerateComparisonInsights } from "../services/compare-service";
+import { fetchGithubCommitCount } from "../services/github-service";
+import { getCommitCount } from "../services/clone-service";
 import { rateLimit } from "express-rate-limit";
 import { semanticSearch } from "../services/search-service";
 import { createAppError } from "../middleware/error-handler";
 import { requireAuth, AuthenticatedRequest } from "../middleware/auth-middleware";
-import { generateRepositoryJourney } from "../services/journey-service";
 import { getFunctionHistory } from "../services/function-service";
+import { getCachedAnalytics } from "../services/analytics-pipeline";
 import * as path from "path";
 
 export const repoRoutes = Router();
@@ -66,13 +68,13 @@ repoRoutes.post("/", async (req, res, next) => {
       throw createAppError("Missing or invalid 'url' in request body", 400);
     }
 
-    const { owner, name } = await validateGithubUrl(url);
+    const { owner, name, normalizedUrl } = await validateGithubUrl(url);
 
     // Idempotency: Check if repository already exists
     const { data: existingRepo, error: findError } = await supabase
       .from("repositories")
       .select("*")
-      .eq("github_url", url)
+      .eq("github_url", normalizedUrl)
       .maybeSingle();
 
     if (findError) throw findError;
@@ -81,7 +83,7 @@ repoRoutes.post("/", async (req, res, next) => {
       // Restart job if it's failed, or sync if it's ready
       if (existingRepo.status === "failed" || existingRepo.status === "ready") {
          await supabase.from("repositories").update({ status: "queued" }).eq("id", existingRepo.id);
-         startIndexingJob(existingRepo.id, url, githubToken);
+         startIndexingJob(existingRepo.id, normalizedUrl, githubToken);
          existingRepo.status = "queued";
       }
       return res.status(200).json(existingRepo);
@@ -91,7 +93,7 @@ repoRoutes.post("/", async (req, res, next) => {
     const { data: newRepo, error: insertError } = await supabase
       .from("repositories")
       .insert({
-        github_url: url,
+        github_url: normalizedUrl,
         owner,
         name,
         status: "queued"
@@ -102,7 +104,7 @@ repoRoutes.post("/", async (req, res, next) => {
     if (insertError) throw insertError;
 
     // Start background job
-    startIndexingJob(newRepo.id, url, githubToken);
+    startIndexingJob(newRepo.id, normalizedUrl, githubToken);
 
     res.status(201).json(newRepo);
   } catch (err) {
@@ -129,6 +131,117 @@ repoRoutes.get("/:id", async (req, res, next) => {
     next(err);
   }
 });
+
+// GET /api/repos/:id/health — Get detailed pipeline and repository health
+repoRoutes.get("/:id/health", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const githubToken = req.headers["x-github-token"] as string | undefined;
+
+    const { data: repo, error } = await supabase
+      .from("repositories")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!repo) throw createAppError("Repository not found", 404);
+
+    const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "./tmp/clones";
+    const repoPath = path.resolve(process.cwd(), CLONE_BASE_PATH, repo.owner, repo.name);
+
+    // Get metrics
+    const [
+      githubCommitCount,
+      journeyRes,
+      contributorsRes,
+      evolutionRes
+    ] = await Promise.all([
+      fetchGithubCommitCount(repo.github_url, githubToken).catch(() => 0),
+      getCachedAnalytics(id, "journey").catch(() => ({ status: "error" })),
+      getCachedAnalytics(id, "contributors").catch(() => ({ status: "error" })),
+      getCachedAnalytics(id, "evolution").catch(() => ({ status: "error" }))
+    ]);
+
+    let localGitCommitCount = 0;
+    let localHeadSha = "";
+    try {
+      const { execSync } = require("child_process");
+      localGitCommitCount = await getCommitCount(repoPath);
+      localHeadSha = execSync(`git rev-parse HEAD`, { cwd: repoPath }).toString().trim();
+    } catch (e) {
+      // Ignored, repo might not be cloned
+    }
+
+    const { count: dbCommitCount } = await supabase
+      .from("commits")
+      .select("id", { count: "exact", head: true })
+      .eq("repo_id", id);
+
+    const { data: distinctShas } = await supabase
+      .from("commits")
+      .select("sha")
+      .eq("repo_id", id);
+      
+    const distinctShaCount = new Set(distinctShas?.map(c => c.sha)).size;
+
+    const { data: latestCommit } = await supabase
+      .from("commits")
+      .select("sha")
+      .eq("repo_id", id)
+      .order("authored_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: pipelineRun } = await supabase
+      .from("repository_pipeline_runs")
+      .select("*")
+      .eq("repo_id", id)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const isVerificationFailed = repo.verification_status === "failed";
+    const isVerificationWarning = repo.verification_status === "warning";
+    const analyticsStatuses = [journeyRes.status, contributorsRes.status, evolutionRes.status];
+    const isAnalyticsFailed = analyticsStatuses.some(s => s === "failed" || s === "error");
+    const isAnalyticsPending = analyticsStatuses.some(s => s === "pending" || s === "queued" || s === "computing");
+
+    let overall_health = "Healthy";
+    if (repo.status === "failed" || isVerificationFailed) {
+      overall_health = "Broken";
+    } else if (isVerificationWarning || isAnalyticsFailed) {
+      overall_health = "Warning";
+    } else if (repo.status !== "ready" || isAnalyticsPending) {
+      overall_health = "Warning"; // Still processing / Degraded
+    }
+
+    res.json({
+      overallHealth: overall_health,
+      repositoryStatus: repo.status,
+      verificationStatus: repo.verification_status,
+      verificationReason: repo.verification_reason,
+      metrics: {
+        githubCommitCount,
+        localGitCommitCount,
+        databaseCommitCount: dbCommitCount || 0,
+        distinctShaCount,
+        localHeadSha,
+        databaseHeadSha: latestCommit?.sha || null,
+        repoLastIndexedSha: repo.last_indexed_sha
+      },
+      analyticsStatus: {
+        journey: journeyRes.status,
+        contributors: contributorsRes.status,
+        evolution: evolutionRes.status
+      },
+      latestPipelineRun: pipelineRun || null
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 
 // POST /api/repos/:id/sync — Sync latest commits (lightweight, independent from historical indexing)
 repoRoutes.post("/:id/sync", async (req, res, next) => {
@@ -200,18 +313,13 @@ repoRoutes.get("/:id/commits", async (req, res, next) => {
 repoRoutes.get("/:id/commits/evolution", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const limit = 1000; // Hard cap for performance
 
-    const { data: commits, error } = await supabase
-      .from("commits")
-      .select("sha, message, author_name, authored_at")
-      .eq("repo_id", id)
-      .order("authored_at", { ascending: true }) // Ascending for horizontal left-to-right timeline
-      .limit(limit);
+    const { data, status, generated_at, analytics_version, error_message } = await getCachedAnalytics(id, "evolution");
 
-    if (error) throw error;
-
-    res.json(commits);
+    res.json({
+      data: Array.isArray(data) ? data : [],
+      meta: { status, generated_at, analytics_version, error_message }
+    });
   } catch (err) {
     next(err);
   }
@@ -256,8 +364,13 @@ repoRoutes.get("/:id/functions/history", async (req, res, next) => {
 repoRoutes.get("/:id/journey", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const journey = await generateRepositoryJourney(id);
-    res.json(journey);
+    const { data, status, generated_at, analytics_version, error_message } = await getCachedAnalytics(id, "journey");
+    
+    // Original returned just the journey object. We'll add meta inside it.
+    res.json({
+      ...data,
+      _meta: { status, generated_at, analytics_version, error_message }
+    });
   } catch (err) {
     next(err);
   }
@@ -274,8 +387,14 @@ repoRoutes.get("/:id/journey/insights", insightsLimiter, async (req, res, next) 
   try {
     const { id } = req.params;
     const forceRefresh = req.query.refresh === 'true';
-    const journey = await generateRepositoryJourney(id);
-    const insights = await getOrGenerateJourneyInsights(id, journey, forceRefresh);
+    
+    // Insights service needs a valid journey object. We'll fetch the cached journey data.
+    const { data: journeyData } = await getCachedAnalytics(id, "journey");
+    
+    // The insight service expects `journey` with .milestones, .stats, etc.
+    // If it's empty, we pass an empty object and it might generate a poor insight, 
+    // but typically insights are requested after journey is ready.
+    const insights = await getOrGenerateJourneyInsights(id, journeyData as any, forceRefresh);
     res.json(insights);
   } catch (err) {
     next(err);
@@ -288,11 +407,11 @@ repoRoutes.get("/compare/:id1/:id2/insights", insightsLimiter, async (req, res, 
     const { id1, id2 } = req.params;
     const forceRefresh = req.query.refresh === 'true';
     
-    // Fetch journeys for both to pass to the AI if needed
-    const journey1 = await generateRepositoryJourney(id1);
-    const journey2 = await generateRepositoryJourney(id2);
+    // Fetch cached journeys for both to pass to the AI if needed
+    const { data: journey1 } = await getCachedAnalytics(id1, "journey");
+    const { data: journey2 } = await getCachedAnalytics(id2, "journey");
     
-    const insights = await getOrGenerateComparisonInsights(id1, id2, journey1, journey2, forceRefresh);
+    const insights = await getOrGenerateComparisonInsights(id1, id2, journey1 as any, journey2 as any, forceRefresh);
     res.json(insights);
   } catch (err) {
     next(err);

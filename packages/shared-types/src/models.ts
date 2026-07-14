@@ -27,9 +27,30 @@ export interface Repository {
   last_indexed_sha: string | null;
   indexing_progress: number;       // 0-100 percentage
   error_message: string | null;
+  verification_status: "pending" | "passed" | "failed" | "warning";
+  verification_reason: string | null;
   created_at: string; // ISO-8601
   updated_at: string; // ISO-8601
   last_indexed_at: string | null; // ISO-8601
+}
+
+// ---------------------------------------------------------------------------
+// Pipeline Run
+// ---------------------------------------------------------------------------
+
+export interface PipelineRun {
+  id: string;
+  repo_id: string;
+  started_at: string; // ISO-8601
+  completed_at: string | null; // ISO-8601
+  clone_duration_ms: number | null;
+  index_duration_ms: number | null;
+  db_write_duration_ms: number | null;
+  verification_duration_ms: number | null;
+  analytics_queue_duration_ms: number | null;
+  total_duration_ms: number | null;
+  status: "in_progress" | "completed" | "failed";
+  error_message: string | null;
 }
 
 // ---------------------------------------------------------------------------
