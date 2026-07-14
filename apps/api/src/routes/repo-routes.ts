@@ -126,6 +126,28 @@ repoRoutes.get("/:id", async (req, res, next) => {
     if (error) throw error;
     if (!repo) throw createAppError("Repository not found", 404);
 
+    // Self-heal: if repo is ready but indexed_commits is 0, reconcile against actual count
+    if (repo.status === "ready" && repo.indexed_commits === 0 && (repo.total_commits || 0) > 0) {
+      const { count: actualCount } = await supabase
+        .from("commits")
+        .select("id", { count: "exact", head: true })
+        .eq("repo_id", id);
+
+      if (actualCount && actualCount > 0) {
+        const progress = repo.total_commits > 0
+          ? Math.min(Math.round((actualCount / repo.total_commits) * 100 * 10) / 10, 100)
+          : 100;
+
+        await supabase
+          .from("repositories")
+          .update({ indexed_commits: actualCount, indexing_progress: progress })
+          .eq("id", id);
+
+        repo.indexed_commits = actualCount;
+        repo.indexing_progress = progress;
+      }
+    }
+
     res.json(repo);
   } catch (err) {
     next(err);
