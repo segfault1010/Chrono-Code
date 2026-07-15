@@ -9,6 +9,5 @@
     "declarationMap": false,
     "noEmit": false
   },
-  "include": ["src"],
-  "exclude": ["scripts"]
+  "include": ["src"]
 }
