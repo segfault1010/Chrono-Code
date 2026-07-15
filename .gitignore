@@ -44,3 +44,7 @@ coverage/
 
 # Misc
 *.log
+
+# Dev scripts — local-only scratch files, NOT production code, never deploy
+.scripts/
+*/.scripts/
