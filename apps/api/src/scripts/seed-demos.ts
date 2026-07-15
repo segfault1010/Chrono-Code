@@ -13,7 +13,7 @@ async function seedDemos() {
   for (const url of DEMO_REPOS) {
     try {
       console.log(`\n[Seed] Importing: ${url}`);
-      const res = await fetch(`${API_BASE}/repos`, {
+      const res: globalThis.Response = await fetch(`${API_BASE}/repos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url })

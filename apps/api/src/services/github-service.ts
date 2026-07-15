@@ -27,7 +27,7 @@ export async function fetchGithubCommitCount(url: string, githubToken?: string):
     }
 
     // Fetch only 1 commit per page to minimize payload size
-    const response = await fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/commits?per_page=1`, { headers });
+    const response: globalThis.Response = await fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/commits?per_page=1`, { headers });
     
     if (!response.ok) {
       if (response.status === 409) return 0; // Empty repository
