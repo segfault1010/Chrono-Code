@@ -15,5 +15,9 @@
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
   },
-  "packageManager": "pnpm@9.15.4"
+  "packageManager": "pnpm@9.15.4",
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "dotenv": "^17.4.2"
+  }
 }
