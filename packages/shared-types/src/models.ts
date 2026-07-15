@@ -160,6 +160,13 @@ export interface RepositoryJourney {
   activity: JourneyActivityNode[];
   phases: JourneyPhase[];
   stats: JourneyStats;
+
+  _meta?: {
+    status: "pending" | "queued" | "computing" | "ready" | "failed" | "outdated";
+    generated_at?: string;
+    analytics_version?: string;
+    error_message?: string;
+  };
 }
 
 export interface JourneyInsights {
