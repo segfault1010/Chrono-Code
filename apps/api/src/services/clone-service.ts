@@ -38,8 +38,9 @@ export async function validateGithubUrl(rawUrl: string): Promise<{ owner: string
       throw new Error(`Path does not have at least 2 parts (found ${parts.length})`);
     }
     
-    const owner = parts[0];
-    const name = parts[1].replace(/\.git$/, "");
+    const owner = parts[0] ?? "";
+    const rawName = parts[1] ?? "";
+    const name = rawName.replace(/\.git$/, "");
     
     if (!owner || !name) {
       throw new Error("Owner or name is empty");

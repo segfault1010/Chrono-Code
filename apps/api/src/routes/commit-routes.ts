@@ -3,7 +3,7 @@
 // GET /api/commits/:sha/explain — Get or generate AI explanation for a commit
 // ============================================================================
 
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { supabase } from "../lib/db";
 import rateLimit from "express-rate-limit";
 import { streamCommitExplanation } from "../services/explanation-service";
@@ -23,7 +23,7 @@ const aiLimiter = rateLimit({
 import { requireAuth } from "../middleware/auth-middleware";
 
 // GET /api/commits/:sha/explain?repoId=xxx — Generate or fetch AI explanation
-commitRoutes.get("/:sha/explain", requireAuth, aiLimiter, async (req, res, next) => {
+commitRoutes.get("/:sha/explain", requireAuth, aiLimiter, async (req: Request<{ sha: string }>, res: Response, next: NextFunction) => {
   try {
     const { sha } = req.params;
     const repoId = req.query.repoId as string;

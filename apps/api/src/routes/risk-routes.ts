@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { streamRiskAnalysis } from "../services/risk-service";
 import { requireAuth } from "../middleware/auth-middleware";
 import { createAppError } from "../middleware/error-handler";
@@ -14,7 +14,7 @@ const aiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-riskRoutes.get("/:id/risk-analysis", aiLimiter, async (req, res, next) => {
+riskRoutes.get("/:id/risk-analysis", aiLimiter, async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const range = req.query.range as string || "last_50";

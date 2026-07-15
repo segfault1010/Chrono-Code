@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { supabase } from "../lib/db";
 import { createAppError } from "../middleware/error-handler";
 import { getCachedAnalytics } from "../services/analytics-pipeline";
@@ -6,7 +6,7 @@ import { getCachedAnalytics } from "../services/analytics-pipeline";
 export const analyticsRoutes = Router({ mergeParams: true });
 
 // GET /api/repos/:id/analytics — Get repository analytics
-analyticsRoutes.get("/", async (req, res, next) => {
+analyticsRoutes.get("/", async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 

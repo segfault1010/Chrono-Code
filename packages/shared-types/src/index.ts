@@ -7,6 +7,7 @@
 export type {
   Repository,
   RepositoryStatus,
+  PipelineRun,
   Commit,
   CommitExplanation,
   CommitFile,
@@ -18,6 +19,7 @@ export type {
   RepositoryJourney,
   JourneyInsights,
   MilestoneCategory,
+  RepositoryComparison,
 } from "./models";
 
 // API contracts

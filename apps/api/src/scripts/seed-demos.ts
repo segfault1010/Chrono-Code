@@ -19,7 +19,7 @@ async function seedDemos() {
         body: JSON.stringify({ url })
       });
       
-      const repo = await res.json();
+      const repo = await res.json() as { id: string; status: string };
       
       if (!res.ok) {
         console.error(`[Seed] Failed to import ${url}:`, repo);

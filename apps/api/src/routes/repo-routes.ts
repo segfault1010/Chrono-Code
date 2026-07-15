@@ -4,12 +4,11 @@
 // GET  /api/repos/:id   — Get repository status and metadata
 // ============================================================================
 
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { supabase } from "../lib/db";
 import { validateGithubUrl } from "../services/clone-service";
 import { startIndexingJob } from "../jobs/index-repo-job";
 import { startSyncJob } from "../jobs/sync-job";
-import { getRepoAnalytics } from "../services/analytics-service";
 import { getOrGenerateJourneyInsights } from "../services/insights-service";
 import { getOrGenerateComparisonInsights } from "../services/compare-service";
 import { fetchGithubCommitCount } from "../services/github-service";
@@ -29,13 +28,13 @@ repoRoutes.get("/:id/search", async (req, res, next) => {
   try {
     const { id } = req.params;
     const query = req.query.q as string;
-    
+
     if (!query) {
       throw createAppError("Missing search query 'q'", 400);
     }
-    
+
     const limit = parseInt(req.query.limit as string || "10", 10);
-    
+
     // If query is exactly a 40-char SHA, just fetch that exact commit
     if (/^[0-9a-f]{40}$/i.test(query.trim())) {
       const { data: exactMatch } = await supabase
@@ -44,14 +43,14 @@ repoRoutes.get("/:id/search", async (req, res, next) => {
         .eq("repo_id", id)
         .eq("sha", query.trim())
         .maybeSingle();
-      
+
       if (exactMatch) {
-        return res.json([ { ...exactMatch, similarity: 1 } ]);
+        return res.json([{ ...exactMatch, similarity: 1 }]);
       }
     }
 
     const matches = await semanticSearch(id, query, limit);
-    
+
     res.json(matches);
   } catch (err) {
     next(err);
@@ -82,9 +81,9 @@ repoRoutes.post("/", async (req, res, next) => {
     if (existingRepo) {
       // Restart job if it's failed, or sync if it's ready
       if (existingRepo.status === "failed" || existingRepo.status === "ready") {
-         await supabase.from("repositories").update({ status: "queued" }).eq("id", existingRepo.id);
-         startIndexingJob(existingRepo.id, normalizedUrl, githubToken);
-         existingRepo.status = "queued";
+        await supabase.from("repositories").update({ status: "queued" }).eq("id", existingRepo.id);
+        startIndexingJob(existingRepo.id, normalizedUrl, githubToken);
+        existingRepo.status = "queued";
       }
       return res.status(200).json(existingRepo);
     }
@@ -204,7 +203,7 @@ repoRoutes.get("/:id/health", async (req, res, next) => {
       .from("commits")
       .select("sha")
       .eq("repo_id", id);
-      
+
     const distinctShaCount = new Set(distinctShas?.map(c => c.sha)).size;
 
     const { data: latestCommit } = await supabase
@@ -300,7 +299,7 @@ repoRoutes.get("/:id/commits", async (req, res, next) => {
     const { id } = req.params;
     const page = parseInt(req.query.page as string || "1", 10);
     const limit = parseInt(req.query.limit as string || "50", 10);
-    
+
     const offset = (page - 1) * limit;
 
     // Fetch commits ordered by authored_at DESC
@@ -387,7 +386,7 @@ repoRoutes.get("/:id/journey", async (req, res, next) => {
   try {
     const { id } = req.params;
     const { data, status, generated_at, analytics_version, error_message } = await getCachedAnalytics(id, "journey");
-    
+
     // Original returned just the journey object. We'll add meta inside it.
     res.json({
       ...data,
@@ -405,14 +404,14 @@ const insightsLimiter = rateLimit({
   message: { error: "AI insight rate limit exceeded." },
 });
 
-repoRoutes.get("/:id/journey/insights", insightsLimiter, async (req, res, next) => {
+repoRoutes.get("/:id/journey/insights", insightsLimiter, async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const forceRefresh = req.query.refresh === 'true';
-    
+
     // Insights service needs a valid journey object. We'll fetch the cached journey data.
     const { data: journeyData } = await getCachedAnalytics(id, "journey");
-    
+
     // The insight service expects `journey` with .milestones, .stats, etc.
     // If it's empty, we pass an empty object and it might generate a poor insight, 
     // but typically insights are requested after journey is ready.
@@ -424,15 +423,15 @@ repoRoutes.get("/:id/journey/insights", insightsLimiter, async (req, res, next) 
 });
 
 // GET /api/repos/compare/:id1/:id2/insights — AI Summary comparing two repos
-repoRoutes.get("/compare/:id1/:id2/insights", insightsLimiter, async (req, res, next) => {
+repoRoutes.get("/compare/:id1/:id2/insights", insightsLimiter, async (req: Request<{ id1: string; id2: string }>, res: Response, next: NextFunction) => {
   try {
     const { id1, id2 } = req.params;
     const forceRefresh = req.query.refresh === 'true';
-    
+
     // Fetch cached journeys for both to pass to the AI if needed
     const { data: journey1 } = await getCachedAnalytics(id1, "journey");
     const { data: journey2 } = await getCachedAnalytics(id2, "journey");
-    
+
     const insights = await getOrGenerateComparisonInsights(id1, id2, journey1 as any, journey2 as any, forceRefresh);
     res.json(insights);
   } catch (err) {

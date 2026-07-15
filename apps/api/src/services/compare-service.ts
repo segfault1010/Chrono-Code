@@ -19,7 +19,9 @@ export async function getOrGenerateComparisonInsights(
   journey2: RepositoryJourney, 
   forceRefresh: boolean = false
 ): Promise<Partial<RepositoryComparison>> {
-  const [r1, r2] = [repo1Id, repo2Id].sort();
+  const sorted = [repo1Id, repo2Id].sort();
+  const r1 = sorted[0] ?? repo1Id;
+  const r2 = sorted[1] ?? repo2Id;
 
   if (!forceRefresh) {
     const { data: existing, error: fetchErr } = await supabase
