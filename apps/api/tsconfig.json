@@ -6,7 +6,9 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "declaration": false,
-    "declarationMap": false
+    "declarationMap": false,
+    "noEmit": false
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["scripts"]
 }

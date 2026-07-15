@@ -1,4 +1,4 @@
-import { fetchGithubCommitCount } from "./apps/api/src/services/github-service";
+import { fetchGithubCommitCount } from "../src/services/github-service";
 
 async function run() {
   const count = await fetchGithubCommitCount("https://github.com/expressjs/express");
