@@ -1,5 +1,5 @@
-import { supabase } from "../lib/db";
-import { fetchGithubCommitCount } from "../services/github-service";
+import { supabase } from "../apps/api/src/lib/db";
+import { fetchGithubCommitCount } from "../apps/api/src/services/github-service";
 
 async function repairCommitCounts() {
   console.log("[repair-commit-counts] Starting database repair...");
