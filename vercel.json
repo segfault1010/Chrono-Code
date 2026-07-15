@@ -1,7 +1,0 @@
-{
-  "version": 2,
-  "buildCommand": "cd apps/web && pnpm build",
-  "outputDirectory": "apps/web/.next",
-  "devCommand": "pnpm --filter @chronocode/web dev",
-  "framework": "nextjs"
-}
