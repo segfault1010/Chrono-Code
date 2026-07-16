@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 # Install git for git operations and python/make/g++ for node-gyp if needed
 RUN apk add --no-cache git python3 make g++
 
@@ -24,5 +24,5 @@ ENV PORT=3001
 
 EXPOSE 3001
 
-# Start the API
-CMD ["pnpm", "--filter", "@chronocode/api", "start"]
+# Start the API directly with node to prevent package manager wrapper crashes
+CMD ["node", "apps/api/dist/index.js"]
