@@ -5,7 +5,7 @@ import { promisify } from "util";
 import * as path from "path";
 
 const execAsync = promisify(exec);
-const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/chronocode";
+const CLONE_BASE_PATH = "/tmp/chronocode";
 
 const MAX_MILESTONES = 200; // Cap to avoid overwhelming UI
 
