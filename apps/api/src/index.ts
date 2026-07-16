@@ -49,8 +49,29 @@ app.use(requestLogger);
 // Routes
 // ---------------------------------------------------------------------------
 
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+app.get("/", (_req, res) => {
+  let version = "0.1.0";
+  try {
+    version = require("../package.json").version;
+  } catch (e) {
+    // fallback
+  }
+
+  res.status(200).json({
+    service: "Chrono-Code API",
+    status: "ok",
+    version,
+    environment: process.env.NODE_ENV || "development",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get(["/health", "/api/health"], (_req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.use("/api/repos", repoRoutes);
@@ -59,10 +80,6 @@ app.use("/api/repos", releaseRoutes);
 app.use("/api/repos", riskRoutes);
 app.use("/api/commits", commitRoutes);
 app.use("/api/user", userRoutes);
-
-app.get("/api/health", (req, res) => {
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-});
 
 // ---------------------------------------------------------------------------
 // Error Handling (must be last)
