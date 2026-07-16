@@ -146,7 +146,7 @@ startAnalyticsWorker();
 startPipelineWorker();
 
 if (!process.env.VERCEL) {
-  app.listen(PORT, async () => {
+  app.listen(PORT as number, "0.0.0.0", async () => {
     await resetOrphanedJobs();
     console.log(`[chronocode-api] Server running on http://localhost:${PORT}`);
     console.log(`[chronocode-api] Health check: http://localhost:${PORT}/api/health`);
