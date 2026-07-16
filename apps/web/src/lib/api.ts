@@ -7,7 +7,7 @@ import type {
 } from "@chronocode/shared-types";
 import { createClient } from "./supabase/client";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api").replace(/\/$/, "");
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {

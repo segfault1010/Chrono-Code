@@ -37,7 +37,9 @@ const globalLimiter = rateLimit({
 app.use(globalLimiter);
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+  origin: process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.split(',') 
+    : ["http://localhost:3000", "https://chrono-code-web.vercel.app"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-GitHub-Token"],
 }));
