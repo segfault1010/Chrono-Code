@@ -143,7 +143,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
     if (!journey || !journey.milestones || journey.milestones.length === 0) return null;
     const times = journey.milestones.map(m => new Date(m.authored_at).getTime());
     const minTime = Math.min(...times);
-    const maxTime = Math.max(...times);
+    const maxTime = Math.max(...times, Date.now());
     const span = Math.max(maxTime - minTime, 86400000);
     return { minTime, maxTime, span };
   }, [journey]);

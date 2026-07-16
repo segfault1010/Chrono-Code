@@ -395,13 +395,33 @@ export default function RepoPage() {
     if (isInitialIndexing || isSyncing) return;
     try {
       setIsSyncing(true);
+      setPage(1); // Reset to page 1
+      
       const res = await api.repos.sync(repoId);
       if (res.repo) {
         setRepo(res.repo);
       }
+      
+      // Poll a few times to catch the new commits as the background sync job runs
+      let attempts = 0;
+      const pollTimer = setInterval(async () => {
+        attempts++;
+        try {
+          const latestRepo = await api.repos.get(repoId);
+          setRepo(latestRepo);
+          loadCommits(1); // Force reload the first page to get recent commits
+        } catch (e) {}
+        
+        if (attempts >= 5) {
+          clearInterval(pollTimer);
+          setIsSyncing(false);
+        }
+      }, 2000);
+      
+      // Don't set isSyncing(false) here, let the interval handle it
+      return;
     } catch (err: any) {
       console.error("Sync failed:", err);
-    } finally {
       setIsSyncing(false);
     }
   };
