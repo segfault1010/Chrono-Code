@@ -78,8 +78,16 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
     const fetchJourney = async () => {
       try {
         const data = await api.repos.getJourney(repo.id);
-        setJourney(data);
-        if (data.milestones.length > 0 && insights?.status !== 'completed' && !insightsLoading) {
+        
+        // Ensure milestones is at least an empty array for safe UI rendering
+        const safeData = {
+          ...data,
+          milestones: data.milestones || []
+        };
+        
+        setJourney(safeData);
+        
+        if (safeData.milestones.length > 0 && insights?.status !== 'completed' && !insightsLoading) {
           fetchInsights();
         }
       } catch (err: any) {

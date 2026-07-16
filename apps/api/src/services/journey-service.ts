@@ -10,6 +10,9 @@ const CLONE_BASE_PATH = "/tmp/chronocode";
 const MAX_MILESTONES = 200; // Cap to avoid overwhelming UI
 
 export async function generateRepositoryJourney(repoId: string): Promise<RepositoryJourney> {
+  const tStart = performance.now();
+  console.log(`[Journey] Request received (Generation Start)`);
+
   const pageSize = 5000;
   let hasMore = true;
   let skip = 0;
@@ -25,24 +28,31 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
   let lastCommitProcessed: any = null;
 
   // Get repository metadata to resolve local path
+  const tLookup = performance.now();
   const { data: repoMeta } = await supabase
     .from("repositories")
     .select("owner, name, total_commits, created_at")
     .eq("id", repoId)
     .single();
+  console.log(`[Journey] Repository lookup: ${Math.round(performance.now() - tLookup)}ms`);
 
   let targetDir = "";
   if (repoMeta) {
     targetDir = path.resolve(CLONE_BASE_PATH, repoMeta.owner, repoMeta.name);
   }
 
+  let commitRetrievalDuration = 0;
+  let milestoneGenerationDuration = 0;
+
   while (hasMore) {
+    const tFetch = performance.now();
     const { data: commits, error } = await supabase
       .from("commits")
       .select("sha, message, author_name, authored_at, parent_shas")
       .eq("repo_id", repoId)
       .order("authored_at", { ascending: true })
       .range(skip, skip + pageSize - 1);
+    commitRetrievalDuration += (performance.now() - tFetch);
 
     if (error) {
       console.error(`[chronocode-api] Failed to fetch commits for journey:`, error);
@@ -54,6 +64,7 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
       break;
     }
 
+    const tMilestone = performance.now();
     for (const commit of commits) {
       lastCommitProcessed = commit;
       // 1. Activity Mapping & General Stats
@@ -91,6 +102,7 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
         });
       }
     }
+    milestoneGenerationDuration += (performance.now() - tMilestone);
 
     if (commits.length < pageSize) {
       hasMore = false;
@@ -98,7 +110,9 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
       skip += pageSize;
     }
   }
+  console.log(`[Journey] Commit retrieval: ${Math.round(commitRetrievalDuration)}ms`);
 
+  const tProcessStart = performance.now();
   if (lastCommitProcessed) {
     const existing = milestones.find(m => m.sha === lastCommitProcessed.sha);
     if (!existing) {
@@ -156,6 +170,10 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
       })
     );
   }
+  milestoneGenerationDuration += (performance.now() - tProcessStart);
+  console.log(`[Journey] Milestone generation: ${Math.round(milestoneGenerationDuration)}ms`);
+  console.log(`[Journey] Number of commits processed: ${totalCommitsProcessed}`);
+  console.log(`[Journey] Number of milestones generated: ${finalMilestones.length}`);
 
   // Calculate Stats
   let mostActiveMonth = "";
