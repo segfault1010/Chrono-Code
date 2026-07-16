@@ -9,15 +9,11 @@ import { createClient } from "./supabase/client";
 
 if (!process.env.NEXT_PUBLIC_API_URL) {
   throw new Error(
-    "NEXT_PUBLIC_API_URL is missing. Configure it in Vercel Environment Variables."
+    "NEXT_PUBLIC_API_URL is missing. Configure it in your Environment Variables."
   );
 }
 
-let envApiUrl = process.env.NEXT_PUBLIC_API_URL || "https://chrono-code-api.vercel.app/api";
-// Fix known typo in Vercel environment variables where the hyphen was omitted
-if (envApiUrl.includes("chronocode-api.vercel.app")) {
-  envApiUrl = envApiUrl.replace("chronocode-api.vercel.app", "chrono-code-api.vercel.app");
-}
+const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
 const API_BASE_URL = envApiUrl.replace(/\/$/, "");
 class ApiError extends Error {
   constructor(public status: number, message: string) {

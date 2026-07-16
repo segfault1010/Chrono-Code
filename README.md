@@ -91,7 +91,7 @@ SUPABASE_ANON_KEY=<your-anon-key>
 GEMINI_API_KEY=<your-gemini-api-key>
 
 # Git
-CLONE_BASE_PATH=./tmp/clones
+CLONE_BASE_PATH=/tmp/chronocode
 
 # Server
 PORT=3001
