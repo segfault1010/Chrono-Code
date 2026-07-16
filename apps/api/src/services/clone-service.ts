@@ -132,7 +132,7 @@ export async function cloneRepo(url: string, githubToken?: string): Promise<stri
       diagnosticInfo += `Git Available: NO (${gitErr.message})\n`;
     }
 
-    const safeUrl = cloneUrl.replace(/https:\/\/[^@]+@/, "https://***@");
+    const safeUrl = normalizedUrl.replace(/https:\/\/[^@]+@/, "https://***@");
     diagnosticInfo += `Command Attempted: git clone ${safeUrl} ${targetDir} --bare --single-branch --filter=blob:none\n`;
     diagnosticInfo += `Exit Code: ${err?.code || 'Unknown'}\n`;
     diagnosticInfo += `Stdout: ${err?.stdout || 'None'}\n`;
