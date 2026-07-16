@@ -60,6 +60,7 @@ repoRoutes.get("/:id/search", async (req, res, next) => {
 // POST /api/repos — Start indexing a new repository
 repoRoutes.post("/", async (req, res, next) => {
   try {
+    console.log(`[POST /api/repos] Request received! Body:`, req.body);
     const { url } = req.body;
     const githubToken = req.headers["x-github-token"] as string | undefined;
 
@@ -68,6 +69,9 @@ repoRoutes.post("/", async (req, res, next) => {
     }
 
     const { owner, name, normalizedUrl } = await validateGithubUrl(url);
+
+    console.log(`[POST /api/repos] Supabase Client Config - URL: ${process.env.SUPABASE_URL}, Service Key Length: ${process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0}`);
+    console.log(`[POST /api/repos] Checking if repository already exists...`);
 
     // Idempotency: Check if repository already exists
     const { data: existingRepo, error: findError } = await supabase
@@ -79,15 +83,26 @@ repoRoutes.post("/", async (req, res, next) => {
     if (findError) throw findError;
 
     if (existingRepo) {
+      console.log(`[POST /api/repos] Repository already exists. Current status: ${existingRepo.status}`);
       // Restart job if it's failed, or sync if it's ready
       if (existingRepo.status === "failed" || existingRepo.status === "ready") {
+        console.log(`[POST /api/repos] Updating existing repo to queued...`);
         await supabase.from("repositories").update({ status: "queued" }).eq("id", existingRepo.id);
         existingRepo.status = "queued";
+      } else {
+        console.log(`[POST /api/repos] Status is not failed or ready, NO UPDATE performed. Remaining status: ${existingRepo.status}`);
       }
+      
+      const { data: verifyData } = await supabase.from("repositories").select("id, github_url, status, created_at").eq("id", existingRepo.id).maybeSingle();
+      console.log(`[POST /api/repos] Existing Repo Verification Row:`, verifyData);
+      const { count: queuedCount } = await supabase.from("repositories").select("*", { count: "exact", head: true }).eq("status", "queued");
+      console.log(`[POST /api/repos] Total queued repositories: ${queuedCount}`);
+      
       return res.status(200).json(existingRepo);
     }
 
     // Insert new repository
+    console.log(`[POST /api/repos] Inserting new repository into database...`);
     const { data: newRepo, error: insertError } = await supabase
       .from("repositories")
       .insert({
@@ -99,7 +114,29 @@ repoRoutes.post("/", async (req, res, next) => {
       .select()
       .single();
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error(`[POST /api/repos] Insert error:`, insertError);
+      throw insertError;
+    }
+    
+    console.log(`[POST /api/repos] Successfully inserted repository!`, newRepo);
+
+    // Post-insert verification query
+    console.log(`[POST /api/repos] Performing post-insert verification for ID: ${newRepo.id}`);
+    const { data: verifyData, error: verifyError } = await supabase
+      .from("repositories")
+      .select("id, github_url, status, created_at")
+      .eq("id", newRepo.id)
+      .maybeSingle();
+      
+    if (verifyError) {
+      console.error(`[POST /api/repos] Verification query error:`, verifyError);
+    } else {
+      console.log(`[POST /api/repos] Verification query returned row:`, verifyData);
+    }
+    
+    const { count: queuedCount } = await supabase.from("repositories").select("*", { count: "exact", head: true }).eq("status", "queued");
+    console.log(`[POST /api/repos] Total queued repositories: ${queuedCount}`);
 
     // Enqueued for background worker
     res.status(201).json(newRepo);

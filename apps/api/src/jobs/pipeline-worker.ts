@@ -26,6 +26,12 @@ export function startPipelineWorker() {
     isRunning = true;
     
     try {
+      console.log(`[pipeline-worker] Supabase Client Config - URL: ${process.env.SUPABASE_URL}, Service Key Length: ${process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0}`);
+      
+      const { count: totalCount } = await supabase.from("repositories").select("*", { count: "exact", head: true });
+      const { count: queuedCount } = await supabase.from("repositories").select("*", { count: "exact", head: true }).eq("status", "queued");
+      console.log(`[pipeline-worker] Pre-poll stats - Total Repos: ${totalCount}, Queued Repos: ${queuedCount}`);
+
       console.log("[pipeline-worker] Executing polling query: SELECT id, github_url FROM repositories WHERE status = 'queued' LIMIT 1");
       const { data: repo, error: fetchErr, count } = await supabase
         .from("repositories")
@@ -144,21 +150,53 @@ async function runPipeline(repoId: string, url: string, githubToken?: string) {
     await runAsyncVerification(repoId, targetDir, totalCommits, runId, tPipelineStart).catch(() => {});
 
     // Stage 5: analytics
+    console.log(`[pipeline-worker] STAGE_START: analytics for repo ${repoId}`);
+    
+    console.log(`[pipeline-worker] ASYNC_CALL: updateStatus("analytics")`);
     await updateStatus("analytics");
+    console.log(`[pipeline-worker] PROMISE_AWAITED: updateStatus("analytics")`);
+    
     const shaToUse = latestSha || "unknown";
+    
+    console.log(`[pipeline-worker] ASYNC_CALL: queueAnalyticsGeneration(["contributors", "activity", "evolution"])`);
     await queueAnalyticsGeneration(repoId, ["contributors", "activity", "evolution"], shaToUse);
+    console.log(`[pipeline-worker] PROMISE_AWAITED: queueAnalyticsGeneration(["contributors", "activity", "evolution"])`);
+    
+    console.log(`[pipeline-worker] ASYNC_CALL: waitForAnalytics(["contributors", "activity", "evolution"])`);
     await waitForAnalytics(repoId, ["contributors", "activity", "evolution"]);
+    console.log(`[pipeline-worker] PROMISE_AWAITED: waitForAnalytics(["contributors", "activity", "evolution"])`);
+    
+    console.log(`[pipeline-worker] STAGE_COMPLETE: analytics for repo ${repoId}`);
 
     // Stage 6: ai_generation
+    console.log(`[pipeline-worker] TRANSITION: analytics -> ai_generation`);
+    console.log(`[pipeline-worker] ASYNC_CALL: updateStatus("ai_generation")`);
     await updateStatus("ai_generation");
+    console.log(`[pipeline-worker] PROMISE_AWAITED: updateStatus("ai_generation")`);
     
     // Stage 7: journey
+    console.log(`[pipeline-worker] TRANSITION: ai_generation -> journey`);
+    console.log(`[pipeline-worker] STAGE_START: journey for repo ${repoId}`);
+    
+    console.log(`[pipeline-worker] ASYNC_CALL: updateStatus("journey")`);
     await updateStatus("journey");
+    console.log(`[pipeline-worker] PROMISE_AWAITED: updateStatus("journey")`);
+    
+    console.log(`[pipeline-worker] ASYNC_CALL: queueAnalyticsGeneration(["journey"])`);
     await queueAnalyticsGeneration(repoId, ["journey"], shaToUse);
+    console.log(`[pipeline-worker] PROMISE_AWAITED: queueAnalyticsGeneration(["journey"])`);
+    
+    console.log(`[pipeline-worker] ASYNC_CALL: waitForAnalytics(["journey"])`);
     await waitForAnalytics(repoId, ["journey"]);
+    console.log(`[pipeline-worker] PROMISE_AWAITED: waitForAnalytics(["journey"])`);
+    
+    console.log(`[pipeline-worker] STAGE_COMPLETE: journey for repo ${repoId}`);
 
     // Stage 8: ready
+    console.log(`[pipeline-worker] TRANSITION: journey -> ready`);
+    console.log(`[pipeline-worker] ASYNC_CALL: updateStatus("ready")`);
     await updateStatus("ready");
+    console.log(`[pipeline-worker] PROMISE_AWAITED: updateStatus("ready")`);
 
     if (runId) {
       await supabase.from("repository_pipeline_runs").update({
@@ -190,19 +228,39 @@ async function runPipeline(repoId: string, url: string, githubToken?: string) {
 }
 
 async function waitForAnalytics(repoId: string, types: string[]) {
+  console.log(`[pipeline-worker] [waitForAnalytics] Starting wait for types: ${types.join(', ')} (Repo: ${repoId})`);
   // Wait up to 5 minutes for analytics to finish
   let attempts = 0;
   while (attempts < 60) {
-    const { data } = await supabase.from("repository_analytics")
-      .select("status")
+    console.log(`[pipeline-worker] [waitForAnalytics] Attempt ${attempts + 1}/60. Querying repository_analytics...`);
+    const { data, error } = await supabase.from("repository_analytics")
+      .select("status, analytics_type")
       .eq("repo_id", repoId)
       .in("analytics_type", types);
       
-    if (!data || data.length === 0) break;
-    const allDone = data.every(a => a.status === "completed" || a.status === "error");
-    if (allDone) break;
+    if (error) {
+      console.error(`[pipeline-worker] [waitForAnalytics] Supabase query error:`, error);
+    }
+      
+    console.log(`[pipeline-worker] [waitForAnalytics] Query returned data:`, data);
+      
+    if (!data || data.length === 0) {
+      console.log(`[pipeline-worker] [waitForAnalytics] No data found. Breaking wait loop.`);
+      break;
+    }
     
+    const allDone = data.every(a => a.status === "completed" || a.status === "error");
+    console.log(`[pipeline-worker] [waitForAnalytics] Check allDone (${allDone}) based on status.`);
+    
+    if (allDone) {
+      console.log(`[pipeline-worker] [waitForAnalytics] allDone is true! Breaking wait loop.`);
+      break;
+    }
+    
+    console.log(`[pipeline-worker] [waitForAnalytics] Sleeping for 5000ms...`);
     await new Promise(r => setTimeout(r, 5000));
+    console.log(`[pipeline-worker] [waitForAnalytics] Woke up from sleep.`);
     attempts++;
   }
+  console.log(`[pipeline-worker] [waitForAnalytics] Wait complete after ${attempts} attempts.`);
 }

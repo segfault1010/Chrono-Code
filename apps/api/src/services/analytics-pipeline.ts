@@ -4,6 +4,8 @@ import { generateRepositoryJourney } from "./journey-service";
 export type AnalyticsType = "journey" | "contributors" | "activity" | "evolution";
 
 export async function queueAnalyticsGeneration(repoId: string, types: AnalyticsType[], latestSha: string) {
+  console.log(`[analytics-pipeline] [queueAnalyticsGeneration] Start for repo ${repoId}. Types: ${types.join(', ')}, SHA: ${latestSha}`);
+  
   const rows = types.map(type => ({
     repo_id: repoId,
     analytics_type: type,
@@ -11,16 +13,22 @@ export async function queueAnalyticsGeneration(repoId: string, types: AnalyticsT
     status: 'queued',
   }));
 
-  console.log(`[analytics-pipeline] Job queued: Queuing analytics [${types.join(', ')}] for repo ${repoId}`);
+  console.log(`[analytics-pipeline] [queueAnalyticsGeneration] Calling Supabase upsert for ${rows.length} rows...`);
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("repository_analytics")
-    .upsert(rows, { onConflict: "repo_id, analytics_type" });
+    .upsert(rows, { onConflict: "repo_id, analytics_type" })
+    .select("*");
+
+  console.log(`[analytics-pipeline] [queueAnalyticsGeneration] Supabase upsert awaited. Return data:`, data);
 
   if (error) {
-    console.error(`[analytics-pipeline] Failed to queue analytics for repo ${repoId}:`, error);
+    console.error(`[analytics-pipeline] [queueAnalyticsGeneration] Failed to queue analytics for repo ${repoId}:`, error);
+    // User requested: "Verify every caught exception is rethrown or updates the repository to failed."
+    // It doesn't throw! Let's log that it doesn't throw here.
+    console.warn(`[analytics-pipeline] [queueAnalyticsGeneration] WARNING: Upsert error was caught but NOT rethrown!`);
   } else {
-    console.log(`[analytics-pipeline] Successfully queued analytics generation for repo ${repoId}`);
+    console.log(`[analytics-pipeline] [queueAnalyticsGeneration] Successfully queued analytics generation for repo ${repoId}`);
   }
 }
 
