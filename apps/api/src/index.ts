@@ -104,11 +104,13 @@ async function resetOrphanedJobs() {
 
 import { startAnalyticsWorker } from "./jobs/analytics-worker";
 
-app.listen(PORT, async () => {
-  await resetOrphanedJobs();
-  startAnalyticsWorker();
-  console.log(`[chronocode-api] Server running on http://localhost:${PORT}`);
-  console.log(`[chronocode-api] Health check: http://localhost:${PORT}/api/health`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, async () => {
+    await resetOrphanedJobs();
+    startAnalyticsWorker();
+    console.log(`[chronocode-api] Server running on http://localhost:${PORT}`);
+    console.log(`[chronocode-api] Health check: http://localhost:${PORT}/api/health`);
+  });
+}
 
-export { app };
+export default app;
