@@ -6,8 +6,8 @@ import { getCachedAnalytics } from "../services/analytics-pipeline";
 
 export const analyticsRoutes = Router({ mergeParams: true });
 
-// GET /api/repos/:id/analytics — Get repository analytics
-analyticsRoutes.get("/", async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+// GET /api/analytics/:id — Get repository analytics
+analyticsRoutes.get("/:id", async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 

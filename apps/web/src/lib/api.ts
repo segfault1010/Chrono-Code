@@ -103,7 +103,7 @@ export const api = {
     getComparisonInsights: (id1: string, id2: string, forceRefresh = false) => 
       fetchWithCache(`compare_${id1}_${id2}`, () => fetchApi<any>(`/repos/compare/${id1}/${id2}/insights${forceRefresh ? '?refresh=true' : ''}`), forceRefresh),
     getAnalytics: (id: string) => 
-      fetchWithCache(`analytics_${id}`, () => fetchApi<any>(`/repos/${id}/analytics`)),
+      fetchWithCache(`analytics_${id}`, () => fetchApi<any>(`/analytics/${id}`)),
     search: (id: string, query: string, limit = 10) =>
       fetchApi<any[]>(`/repos/${id}/search?q=${encodeURIComponent(query)}&limit=${limit}`),
     sync: (id: string) => fetchApi<any>(`/repos/${id}/sync`, { method: "POST" }),
@@ -116,7 +116,7 @@ export const api = {
       if (session?.access_token) {
         headers["Authorization"] = `Bearer ${session.access_token}`;
       }
-      return fetch(`${API_BASE_URL}/repos/${id}/releases/generate?range=${range}`, { headers });
+      return fetch(`${API_BASE_URL}/releases/${id}/releases/generate?range=${range}`, { headers });
     },
     generateRiskAnalysis: async (id: string, range: string) => {
       const supabase = createClient();
@@ -125,7 +125,7 @@ export const api = {
       if (session?.access_token) {
         headers["Authorization"] = `Bearer ${session.access_token}`;
       }
-      return fetch(`${API_BASE_URL}/repos/${id}/risk-analysis?range=${range}`, { headers });
+      return fetch(`${API_BASE_URL}/risk/${id}/risk-analysis?range=${range}`, { headers });
     },
   },
   user: {

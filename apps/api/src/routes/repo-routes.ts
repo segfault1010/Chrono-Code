@@ -417,16 +417,23 @@ repoRoutes.get("/:id/functions/history", async (req, res, next) => {
 
 // GET /api/repos/:id/journey — Aggregated repository journey (milestones & activity)
 repoRoutes.get("/:id/journey", async (req, res, next) => {
+  const t0 = performance.now();
+  console.log(`[Repository Journey] START: GET /:id/journey for id=${req.params.id}`);
   try {
     const { id } = req.params;
+    console.log(`[Repository Journey] fetching getCachedAnalytics...`);
+    const tCache0 = performance.now();
     const { data, status, generated_at, analytics_version, error_message } = await getCachedAnalytics(id, "journey");
+    console.log(`[Repository Journey] getCachedAnalytics took ${performance.now() - tCache0}ms`);
 
     // Original returned just the journey object. We'll add meta inside it.
     res.json({
       ...data,
       _meta: { status, generated_at, analytics_version, error_message }
     });
-  } catch (err) {
+    console.log(`[Repository Journey] END: GET /:id/journey. Total Duration: ${performance.now() - t0}ms`);
+  } catch (err: any) {
+    console.error(`[Repository Journey] ERROR: GET /:id/journey. Total Duration: ${performance.now() - t0}ms. Stack:`, err.stack);
     next(err);
   }
 });
@@ -439,19 +446,30 @@ const insightsLimiter = rateLimit({
 });
 
 repoRoutes.get("/:id/journey/insights", insightsLimiter, async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+  const t0 = performance.now();
+  console.log(`[Repository Journey Insights] START: GET /:id/journey/insights for id=${req.params.id}`);
   try {
     const { id } = req.params;
     const forceRefresh = req.query.refresh === 'true';
 
     // Insights service needs a valid journey object. We'll fetch the cached journey data.
+    console.log(`[Repository Journey Insights] fetching getCachedAnalytics...`);
+    const tCache0 = performance.now();
     const { data: journeyData } = await getCachedAnalytics(id, "journey");
+    console.log(`[Repository Journey Insights] getCachedAnalytics took ${performance.now() - tCache0}ms`);
 
     // The insight service expects `journey` with .milestones, .stats, etc.
     // If it's empty, we pass an empty object and it might generate a poor insight, 
     // but typically insights are requested after journey is ready.
+    console.log(`[Repository Journey Insights] fetching getOrGenerateJourneyInsights...`);
+    const tInsights0 = performance.now();
     const insights = await getOrGenerateJourneyInsights(id, journeyData as any, forceRefresh);
+    console.log(`[Repository Journey Insights] getOrGenerateJourneyInsights took ${performance.now() - tInsights0}ms`);
+    
     res.json(insights);
-  } catch (err) {
+    console.log(`[Repository Journey Insights] END: GET /:id/journey/insights. Total Duration: ${performance.now() - t0}ms`);
+  } catch (err: any) {
+    console.error(`[Repository Journey Insights] ERROR: GET /:id/journey/insights. Total Duration: ${performance.now() - t0}ms. Stack:`, err.stack);
     next(err);
   }
 });
