@@ -141,7 +141,7 @@ export async function cloneRepo(url: string, githubToken?: string): Promise<stri
     
     console.error(diagnosticInfo);
 
-    throw createAppError(`Git Clone Failed: ${err?.message || String(err)}\n\nDiagnostics:\n${diagnosticInfo}`, 500);
+    throw createAppError(`Git Clone Failed: ${err?.message || String(err)}`, 500);
   }
 
   return targetDir;
