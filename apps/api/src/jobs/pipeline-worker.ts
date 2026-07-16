@@ -9,34 +9,49 @@ let workerInterval: NodeJS.Timeout | null = null;
 const WORKER_INTERVAL_MS = 1000; // Poll every 1 second
 
 export function startPipelineWorker() {
-  if (workerInterval) return;
+  console.log("[pipeline-worker] startPipelineWorker() called - checking if interval is set");
+  if (workerInterval) {
+    console.log("[pipeline-worker] Interval already set, skipping duplicate start.");
+    return;
+  }
   
   console.log("[pipeline-worker] Starting background pipeline worker...");
   
   workerInterval = setInterval(async () => {
-    if (isRunning) return;
+    console.log("[pipeline-worker] Polling loop started...");
+    if (isRunning) {
+      console.log("[pipeline-worker] Polling skipped: already running.");
+      return;
+    }
     isRunning = true;
     
     try {
-      // Find a queued repository
-      const { data: repo, error: fetchErr } = await supabase
+      console.log("[pipeline-worker] Executing polling query: SELECT id, github_url FROM repositories WHERE status = 'queued' LIMIT 1");
+      const { data: repo, error: fetchErr, count } = await supabase
         .from("repositories")
-        .select("id, github_url")
+        .select("id, github_url", { count: "exact" })
         .eq("status", "queued")
         .limit(1)
         .maybeSingle();
         
       if (fetchErr) {
         console.error("[pipeline-worker] Error fetching job:", fetchErr);
+        console.error(fetchErr);
         return;
       }
       
+      console.log(`[pipeline-worker] Query complete. Found ${count ?? (repo ? 1 : 0)} queued repositories.`);
+      
       if (repo) {
         console.log(`[pipeline-worker] Picked up job for repo: ${repo.id}`);
+        console.log(`[pipeline-worker] Processing repo <${repo.id}>`);
         await runPipeline(repo.id, repo.github_url);
+      } else {
+        console.log("[pipeline-worker] No queued repositories found during this poll.");
       }
-    } catch (err) {
-      console.error("[pipeline-worker] Unexpected error in worker loop:", err);
+    } catch (err: any) {
+      console.error("[pipeline-worker] Unexpected error in worker loop:");
+      console.error(err?.stack || err);
     } finally {
       isRunning = false;
     }
@@ -48,25 +63,39 @@ async function runPipeline(repoId: string, url: string, githubToken?: string) {
   let runId: string | undefined;
 
   const updateStatus = async (status: string, error_message: string | null = null, extra: any = {}) => {
-    console.log(`[pipeline-worker] STATE_TRANSITION: Repo ${repoId} -> ${status}`);
-    const { error } = await supabase.from("repositories").update({ status, error_message, ...extra }).eq("id", repoId);
+    console.log(`[pipeline-worker] Status -> ${status}`);
+    const { data, error, count } = await supabase.from("repositories").update({ status, error_message, ...extra }).eq("id", repoId).select("*");
+    
     if (error) {
       console.error(`[pipeline-worker] FATAL DB ERROR: Failed to transition repo ${repoId} to state ${status}:`, error);
       throw new Error(`Database error on status update to ${status}: ${error.message}`);
     }
+    
+    console.log(`[pipeline-worker] Status update successful. Affected rows: ${data?.length || 0}`);
+    if (!data || data.length === 0) {
+      console.warn(`[pipeline-worker] WARNING: Status update to ${status} affected 0 rows for repo ${repoId}.`);
+    }
   };
 
   try {
+    console.log(`[pipeline-worker] Starting Phase 0: pending for repo ${repoId}`);
     // Phase 0: pending
     await updateStatus("pending");
 
-    const { data: run } = await supabase
+    console.log(`[pipeline-worker] Inserting run record for repo ${repoId}`);
+    const { data: run, error: insertError } = await supabase
       .from("repository_pipeline_runs")
       .insert({ repo_id: repoId, status: "in_progress" })
       .select("id")
       .maybeSingle();
+      
+    if (insertError) {
+      console.error(`[pipeline-worker] Failed to insert run record:`, insertError);
+    }
+    
     if (run) runId = run.id;
 
+    console.log(`[pipeline-worker] Starting Stage 1: cloning for repo ${repoId}`);
     // Stage 1: cloning
     await updateStatus("cloning");
     const tCloneStart = performance.now();
@@ -142,10 +171,13 @@ async function runPipeline(repoId: string, url: string, githubToken?: string) {
     
     console.log(`[pipeline-worker] Pipeline complete for ${repoId}`);
 
-  } catch (err) {
+  } catch (err: any) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error(`[pipeline-worker] Pipeline failed for ${repoId}:`, err);
-    await updateStatus("failed", errorMessage);
+    console.error(`[pipeline-worker] Pipeline failed for ${repoId}:`);
+    console.error(err?.stack || err);
+    await updateStatus("failed", errorMessage).catch(e => {
+      console.error(`[pipeline-worker] Failed to update status to 'failed':`, e);
+    });
     
     if (runId) {
       await supabase.from("repository_pipeline_runs").update({

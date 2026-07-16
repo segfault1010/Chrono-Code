@@ -101,14 +101,29 @@ try {
 }
 
 async function resetOrphanedJobs() {
-  const { error: phase1Err } = await supabase.from("repositories").update({ status: "failed", error_message: "Indexing aborted due to server restart." }).in("status", ["queued", "cloning", "indexing"]);
-  if (phase1Err) throw phase1Err;
+  console.log("[pipeline-worker] resetOrphanedJobs: Starting phase 1 (resetting queued/cloning/indexing to failed)...");
+  const { data: phase1Data, error: phase1Err, count: phase1Count } = await supabase.from("repositories").update({ status: "failed", error_message: "Indexing aborted due to server restart." }).in("status", ["queued", "cloning", "indexing"]).select("id");
+  
+  console.log(`[pipeline-worker] resetOrphanedJobs: Phase 1 complete. Affected rows: ${phase1Data?.length || 0}. Error: ${phase1Err ? JSON.stringify(phase1Err) : 'none'}`);
+  if (phase1Err) {
+    console.error("[pipeline-worker] FATAL: resetOrphanedJobs Phase 1 failed:", phase1Err);
+    throw phase1Err;
+  }
 
+  console.log("[pipeline-worker] resetOrphanedJobs: Starting phase 2 (fetching indexing_history)...");
   const { data: resumable, error: phase2Err } = await supabase.from("repositories").select("id, github_url").eq("status", "indexing_history");
-  if (phase2Err) throw phase2Err;
+  
+  console.log(`[pipeline-worker] resetOrphanedJobs: Phase 2 complete. Found ${resumable?.length || 0} resumable jobs. Error: ${phase2Err ? JSON.stringify(phase2Err) : 'none'}`);
+  if (phase2Err) {
+    console.error("[pipeline-worker] FATAL: resetOrphanedJobs Phase 2 failed:", phase2Err);
+    throw phase2Err;
+  }
 
   if (resumable && resumable.length > 0) {
-    for (const repo of resumable) resumeIndexingJob(repo.id, repo.github_url);
+    for (const repo of resumable) {
+      console.log(`[pipeline-worker] resetOrphanedJobs: Resuming indexing_history job for ${repo.id}`);
+      resumeIndexingJob(repo.id, repo.github_url);
+    }
   }
 }
 
