@@ -631,7 +631,7 @@ export default function RepoPage() {
 
       {activeTab === "evolution" ? (
         <TabErrorBoundary tabName="Code Evolution">
-          <CodeEvolution repo={repo} onJumpToTimeline={handleJumpToTimeline} isIndexing={isIndexing} />
+          <CodeEvolution repo={repo} onJumpToTimeline={handleJumpToTimeline} isIndexing={isIndexing} user={user} />
         </TabErrorBoundary>
       ) : activeTab === "analytics" ? (
         <TabErrorBoundary tabName="Contributor Analytics">
@@ -720,14 +720,16 @@ export default function RepoPage() {
                     )}
                   </div>
                 </div>
-                <Button
-                  variant={explanations[commit.sha] ? "secondary" : "primary"}
-                  onClick={() => handleExplain(commit.sha)}
-                  isLoading={explanations[commit.sha]?.isExplaining}
-                  className="w-full sm:w-auto shrink-0 shadow-sm"
-                >
-                  {explanations[commit.sha] ? "Close Insights" : "AI Explain"}
-                </Button>
+                {user && (
+                  <Button
+                    variant={explanations[commit.sha] ? "secondary" : "primary"}
+                    onClick={() => handleExplain(commit.sha)}
+                    isLoading={explanations[commit.sha]?.isExplaining}
+                    className="w-full sm:w-auto shrink-0 shadow-sm"
+                  >
+                    {explanations[commit.sha] ? "Close Insights" : "AI Explain"}
+                  </Button>
+                )}
               </div>
 
               {/* Explanation View */}

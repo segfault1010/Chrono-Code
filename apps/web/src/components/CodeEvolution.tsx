@@ -8,6 +8,7 @@ interface CodeEvolutionProps {
   repo: Repository;
   onJumpToTimeline: (sha: string) => void;
   isIndexing?: boolean;
+  user?: any;
 }
 
 const CATEGORY_COLORS: Record<MilestoneCategory, string> = {
@@ -32,7 +33,7 @@ const CATEGORY_LABELS: Record<MilestoneCategory, string> = {
   unknown: "Commit",
 };
 
-export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolutionProps) {
+export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: CodeEvolutionProps) {
   const [journey, setJourney] = useState<RepositoryJourney | null>(null);
   const [insights, setInsights] = useState<JourneyInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
@@ -232,7 +233,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
               </span>
             )}
           </div>
-          {insights?.status === 'completed' && (
+          {user && insights?.status === 'completed' && (
             <button
               onClick={() => fetchInsights(false, true)}
               disabled={insightsLoading}
@@ -263,13 +264,17 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing }: CodeEvolut
         ) : (
            <div className="flex flex-col items-start gap-3">
              <p className="text-sm text-gray-400">An AI-generated narrative of this repository's evolution is available.</p>
-             <button
-               onClick={() => fetchInsights(false, true)}
-               className="bg-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/80 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(var(--color-accent-primary-rgb),0.3)]"
-             >
-               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-               Generate Repository Story
-             </button>
+             {user ? (
+               <button
+                 onClick={() => fetchInsights(false, true)}
+                 className="bg-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/80 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(var(--color-accent-primary-rgb),0.3)]"
+               >
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                 Generate Repository Story
+               </button>
+             ) : (
+               <p className="text-xs text-gray-500 mt-2">Please log in to generate an AI narrative.</p>
+             )}
            </div>
         )}
       </div>
