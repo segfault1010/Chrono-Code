@@ -10,10 +10,8 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || (!SUPABASE_SERVICE_ROLE_KEY && !SUPABASE_ANON_KEY)) {
-  console.warn(
-    "[chronocode-api] WARNING: SUPABASE_URL or a Supabase Key is not set. " +
-    "Database operations will fail. Set these in your .env file."
-  );
+  console.error("[chronocode-api] FATAL: SUPABASE_URL or a Supabase Key is not set. Database operations will fail. Set these in your .env file.");
+  process.exit(1);
 }
 
 /**

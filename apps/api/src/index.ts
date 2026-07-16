@@ -19,7 +19,16 @@ import { supabase } from "./lib/db";
 import { resumeIndexingJob } from "./jobs/index-repo-job";
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
+
+// Validate essential environment variables before starting
+if (!process.env.GEMINI_API_KEY) {
+  console.error("[chronocode-api] FATAL: GEMINI_API_KEY is not set.");
+  process.exit(1);
+}
+if (!process.env.NODE_ENV) {
+  console.warn("[chronocode-api] WARNING: NODE_ENV is not set, defaulting to development.");
+}
 
 // ---------------------------------------------------------------------------
 // Global Middleware
