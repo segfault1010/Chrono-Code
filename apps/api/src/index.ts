@@ -121,45 +121,69 @@ app.use(errorHandler);
 
 // Reset or resume orphaned jobs on startup
 async function resetOrphanedJobs() {
-  try {
-    // Phase 1 jobs (queued/cloning/indexing) have no usable data yet — mark as failed
-    await supabase
-      .from("repositories")
-      .update({ status: "failed", error_message: "Indexing aborted due to server restart." })
-      .in("status", ["queued", "cloning", "indexing"]);
+  // Phase 1 jobs (queued/cloning/indexing) have no usable data yet — mark as failed
+  const { error: phase1Err } = await supabase
+    .from("repositories")
+    .update({ status: "failed", error_message: "Indexing aborted due to server restart." })
+    .in("status", ["queued", "cloning", "indexing"]);
+    
+  if (phase1Err) throw phase1Err;
 
-    // Phase 2 jobs (indexing_history) have partial data and can be resumed
-    const { data: resumable } = await supabase
-      .from("repositories")
-      .select("id, github_url")
-      .eq("status", "indexing_history");
+  // Phase 2 jobs (indexing_history) have partial data and can be resumed
+  const { data: resumable, error: phase2Err } = await supabase
+    .from("repositories")
+    .select("id, github_url")
+    .eq("status", "indexing_history");
+    
+  if (phase2Err) throw phase2Err;
 
-    if (resumable && resumable.length > 0) {
-      console.log(`[chronocode-api] Resuming ${resumable.length} interrupted indexing job(s)...`);
-      for (const repo of resumable) {
-        resumeIndexingJob(repo.id, repo.github_url);
-      }
+  if (resumable && resumable.length > 0) {
+    console.log(`[chronocode-api] Resuming ${resumable.length} interrupted indexing job(s)...`);
+    for (const repo of resumable) {
+      resumeIndexingJob(repo.id, repo.github_url);
     }
-
-    console.log("[chronocode-api] Orphaned job handling complete.");
-  } catch (err) {
-    console.error("[chronocode-api] Failed to handle orphaned jobs:", err);
   }
+
+  console.log("[chronocode-api] Orphaned job handling complete.");
 }
 
 import { startAnalyticsWorker } from "./jobs/analytics-worker";
 import { startPipelineWorker } from "./jobs/pipeline-worker";
 
-// Always start workers on module load (vital for Serverless/Vercel environments)
-startAnalyticsWorker();
-startPipelineWorker();
+function bootstrap() {
+  console.log("[chronocode-api] Bootstrapping...");
 
-if (!process.env.VERCEL) {
-  app.listen(PORT as number, "0.0.0.0", async () => {
-    await resetOrphanedJobs();
-    console.log(`[chronocode-api] Server running on http://localhost:${PORT}`);
-    console.log(`[chronocode-api] Health check: http://localhost:${PORT}/api/health`);
+  const server = app.listen(PORT as number, "0.0.0.0", () => {
+    console.log(`[chronocode-api] Server listening on PORT ${PORT}`);
+    console.log("[chronocode-api] Health endpoint available");
+
+    // Asynchronously execute background tasks without blocking
+    Promise.resolve().then(async () => {
+      try {
+        console.log("[chronocode-api] Starting orphaned job recovery...");
+        await resetOrphanedJobs();
+
+        console.log("[chronocode-api] Starting analytics worker...");
+        startAnalyticsWorker();
+
+        console.log("[chronocode-api] Starting pipeline worker...");
+        startPipelineWorker();
+
+        console.log("[chronocode-api] Startup complete.");
+      } catch (err) {
+        console.error("[chronocode-api] Background initialization failed:", err);
+      }
+    });
   });
+
+  server.on("error", (err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+if (require.main === module) {
+  bootstrap();
 }
 
 export default app;
