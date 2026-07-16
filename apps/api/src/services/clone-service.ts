@@ -105,10 +105,43 @@ export async function cloneRepo(url: string, githubToken?: string): Promise<stri
     //   The blobless filter keeps it fast — ~5-8s for facebook/react (26k commits).
     await git.clone(cloneUrl, targetDir, ["--bare", "--single-branch", "--filter=blob:none"]);
     console.log(`[chronocode-api] Clone complete for ${url}`);
-  } catch (err) {
+  } catch (err: any) {
     // Cleanup on failure
     await fs.rm(targetDir, { recursive: true, force: true }).catch(() => {});
-    throw createAppError("Failed to clone repository. Is it public or do you lack permissions?", 400, String(err));
+    
+    // Gather diagnostic information
+    let diagnosticInfo = `[CLONE_ERROR_DIAGNOSTICS]\n`;
+    diagnosticInfo += `Original Error: ${err?.message || String(err)}\n`;
+    diagnosticInfo += `Repository URL: ${url}\n`;
+    diagnosticInfo += `Clone Destination: ${targetDir}\n`;
+    diagnosticInfo += `Working Directory: ${process.cwd()}\n`;
+    
+    // Check if destination is writable
+    try {
+      await fs.access(path.dirname(targetDir), fs.constants.W_OK);
+      diagnosticInfo += `Destination Writable: YES\n`;
+    } catch {
+      diagnosticInfo += `Destination Writable: NO\n`;
+    }
+
+    // Check if git is available
+    try {
+      const gitVer = await execAsync("git --version");
+      diagnosticInfo += `Git Available: YES (${gitVer.stdout.trim()})\n`;
+    } catch (gitErr: any) {
+      diagnosticInfo += `Git Available: NO (${gitErr.message})\n`;
+    }
+
+    const safeUrl = cloneUrl.replace(/https:\/\/[^@]+@/, "https://***@");
+    diagnosticInfo += `Command Attempted: git clone ${safeUrl} ${targetDir} --bare --single-branch --filter=blob:none\n`;
+    diagnosticInfo += `Exit Code: ${err?.code || 'Unknown'}\n`;
+    diagnosticInfo += `Stdout: ${err?.stdout || 'None'}\n`;
+    diagnosticInfo += `Stderr: ${err?.stderr || 'None'}\n`;
+    diagnosticInfo += `Stack: ${err?.stack || 'None'}\n`;
+    
+    console.error(diagnosticInfo);
+
+    throw createAppError(`Git Clone Failed: ${err?.message || String(err)}\n\nDiagnostics:\n${diagnosticInfo}`, 500);
   }
 
   return targetDir;
