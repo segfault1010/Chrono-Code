@@ -57,6 +57,9 @@ async function runPipeline(repoId: string, url: string, githubToken?: string) {
   };
 
   try {
+    // Phase 0: pending
+    await updateStatus("pending");
+
     const { data: run } = await supabase
       .from("repository_pipeline_runs")
       .insert({ repo_id: repoId, status: "in_progress" })
@@ -70,8 +73,8 @@ async function runPipeline(repoId: string, url: string, githubToken?: string) {
     const targetDir = await cloneRepo(url, githubToken);
     const durationClone = Math.round(performance.now() - tCloneStart);
 
-    // Stage 2: fetching_commits (use cloning status as fetching_commits might be invalid)
-    // await updateStatus("fetching_commits");
+    // Stage 2: fetching_commits
+    await updateStatus("fetching_commits");
     const [totalCommits, defaultBranch] = await Promise.all([
       fetchGithubCommitCount(url, githubToken).catch(e => 0),
       getDefaultBranch(targetDir)
@@ -112,14 +115,16 @@ async function runPipeline(repoId: string, url: string, githubToken?: string) {
     await runAsyncVerification(repoId, targetDir, totalCommits, runId, tPipelineStart).catch(() => {});
 
     // Stage 5: analytics
-    await updateStatus("verifying"); // Keep status as verifying during analytics to avoid invalid enum
+    await updateStatus("analytics");
     const shaToUse = latestSha || "unknown";
     await queueAnalyticsGeneration(repoId, ["contributors", "activity", "evolution"], shaToUse);
     await waitForAnalytics(repoId, ["contributors", "activity", "evolution"]);
 
-    // Stage 6: ai_generation (skip invalid status)
+    // Stage 6: ai_generation
+    await updateStatus("ai_generation");
     
-    // Stage 7: journey (skip invalid status)
+    // Stage 7: journey
+    await updateStatus("journey");
     await queueAnalyticsGeneration(repoId, ["journey"], shaToUse);
     await waitForAnalytics(repoId, ["journey"]);
 

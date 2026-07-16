@@ -9,9 +9,15 @@
 
 export type RepositoryStatus =
   | "queued"
+  | "pending"
   | "cloning"
+  | "fetching_commits"
   | "indexing"
   | "indexing_history"
+  | "verifying"
+  | "analytics"
+  | "ai_generation"
+  | "journey"
   | "ready"
   | "failed";
 
