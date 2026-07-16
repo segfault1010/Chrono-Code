@@ -8,7 +8,6 @@ import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { supabase } from "../lib/db";
 import { validateGithubUrl } from "../services/clone-service";
-import { startIndexingJob } from "../jobs/index-repo-job";
 import { startSyncJob } from "../jobs/sync-job";
 import { getOrGenerateJourneyInsights } from "../services/insights-service";
 import { getOrGenerateComparisonInsights } from "../services/compare-service";
@@ -83,7 +82,6 @@ repoRoutes.post("/", async (req, res, next) => {
       // Restart job if it's failed, or sync if it's ready
       if (existingRepo.status === "failed" || existingRepo.status === "ready") {
         await supabase.from("repositories").update({ status: "queued" }).eq("id", existingRepo.id);
-        startIndexingJob(existingRepo.id, normalizedUrl, githubToken);
         existingRepo.status = "queued";
       }
       return res.status(200).json(existingRepo);
@@ -103,9 +101,7 @@ repoRoutes.post("/", async (req, res, next) => {
 
     if (insertError) throw insertError;
 
-    // Start background job
-    startIndexingJob(newRepo.id, normalizedUrl, githubToken);
-
+    // Enqueued for background worker
     res.status(201).json(newRepo);
   } catch (err) {
     next(err);
@@ -169,7 +165,7 @@ repoRoutes.get("/:id/health", async (req, res, next) => {
     if (error) throw error;
     if (!repo) throw createAppError("Repository not found", 404);
 
-    const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/clones";
+    const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/chronocode";
     const repoPath = path.resolve(CLONE_BASE_PATH, repo.owner, repo.name);
 
     // Get metrics
@@ -367,7 +363,7 @@ repoRoutes.get("/:id/functions/history", async (req, res, next) => {
     if (error) throw error;
     if (!repo) throw createAppError("Repository not found", 404);
 
-    const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/clones";
+    const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/chronocode";
     const repoPath = path.resolve(CLONE_BASE_PATH, repo.owner, repo.name);
 
     const history = await getFunctionHistory(repoPath, filePath, functionName);

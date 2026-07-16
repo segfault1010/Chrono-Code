@@ -33,8 +33,15 @@ function timeAgo(dateString: string | null): string {
 function getStatusColor(status: string): string {
   switch (status) {
     case "ready": return "var(--color-success, #22c55e)";
-    case "indexing_history": return "var(--color-accent-primary)";
-    case "indexing": case "cloning": case "queued": return "var(--color-warning, #f59e0b)";
+    case "journey":
+    case "ai_generation":
+    case "analytics":
+    case "verifying": return "var(--color-accent-primary)";
+    case "indexing":
+    case "fetching_commits":
+    case "cloning":
+    case "pending":
+    case "queued": return "var(--color-warning, #f59e0b)";
     case "failed": return "var(--color-error)";
     default: return "var(--color-text-tertiary)";
   }
@@ -43,9 +50,14 @@ function getStatusColor(status: string): string {
 function getStatusLabel(status: string): string {
   switch (status) {
     case "ready": return "Ready";
-    case "indexing_history": return "Indexing History…";
-    case "indexing": return "Indexing…";
+    case "journey": return "Computing Journey…";
+    case "ai_generation": return "Generating AI Summaries…";
+    case "analytics": return "Computing Analytics…";
+    case "verifying": return "Verifying Integrity…";
+    case "indexing": return "Indexing Commits…";
+    case "fetching_commits": return "Fetching Commits…";
     case "cloning": return "Cloning…";
+    case "pending": return "Pending";
     case "queued": return "Queued";
     case "failed": return "Failed";
     default: return status;
@@ -105,8 +117,9 @@ export default function RepoPage() {
           loadCommits(1);
         }
 
-        // The repo is "usable" once it has data — either indexing_history or ready
-        const isUsable = data.status === "ready" || data.status === "indexing_history";
+        // The repo is "usable" once it has data — either verifying, analytics, ai_generation, journey, or ready
+        const usableStatuses = ["verifying", "analytics", "ai_generation", "journey", "ready"];
+        const isUsable = usableStatuses.includes(data.status);
         
         if (isUsable) {
           setIsLoading(false);
@@ -143,8 +156,8 @@ export default function RepoPage() {
     };
     checkAuthAndSaved();
 
-    // Poll every 3s during initial indexing, 5s during history indexing
-    pollInterval = setInterval(fetchRepo, 3000);
+    // Poll every 2s
+    pollInterval = setInterval(fetchRepo, 2000);
 
     return () => clearInterval(pollInterval);
   }, [repoId, isSyncing]); // Re-run effect if we trigger a sync
@@ -427,9 +440,9 @@ export default function RepoPage() {
   };
 
   // Initial indexing = Phase 1 (before any data is available)
-  const isInitialIndexing = repo.status === "queued" || repo.status === "cloning" || repo.status === "indexing";
+  const isInitialIndexing = ["queued", "pending", "cloning", "fetching_commits", "indexing"].includes(repo.status);
   // Background indexing = Phase 2 (repo is usable, history still loading)
-  const isBackgroundIndexing = repo.status === "indexing_history";
+  const isBackgroundIndexing = ["verifying", "analytics", "ai_generation", "journey"].includes(repo.status);
   const isIndexing = isInitialIndexing || isBackgroundIndexing;
   let progressPercent = 0;
   if (repo.status === "ready") {

@@ -139,11 +139,15 @@ async function resetOrphanedJobs() {
 }
 
 import { startAnalyticsWorker } from "./jobs/analytics-worker";
+import { startPipelineWorker } from "./jobs/pipeline-worker";
+
+// Always start workers on module load (vital for Serverless/Vercel environments)
+startAnalyticsWorker();
+startPipelineWorker();
 
 if (!process.env.VERCEL) {
   app.listen(PORT, async () => {
     await resetOrphanedJobs();
-    startAnalyticsWorker();
     console.log(`[chronocode-api] Server running on http://localhost:${PORT}`);
     console.log(`[chronocode-api] Health check: http://localhost:${PORT}/api/health`);
   });

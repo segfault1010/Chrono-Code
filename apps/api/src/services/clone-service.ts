@@ -6,7 +6,7 @@ import { promisify } from "util";
 import { createAppError } from "../middleware/error-handler";
 
 const execAsync = promisify(exec);
-const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/clones";
+const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/chronocode";
 
 export async function validateGithubUrl(rawUrl: string): Promise<{ owner: string; name: string; normalizedUrl: string }> {
   console.log(`[Validation] Raw input: "${rawUrl}"`);
