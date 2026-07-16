@@ -5,7 +5,7 @@ import { promisify } from "util";
 import * as path from "path";
 
 const execAsync = promisify(exec);
-const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "./tmp/clones";
+const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/clones";
 
 const MAX_MILESTONES = 200; // Cap to avoid overwhelming UI
 
@@ -33,7 +33,7 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
 
   let targetDir = "";
   if (repoMeta) {
-    targetDir = path.resolve(process.cwd(), CLONE_BASE_PATH, repoMeta.owner, repoMeta.name);
+    targetDir = path.resolve(CLONE_BASE_PATH, repoMeta.owner, repoMeta.name);
   }
 
   while (hasMore) {

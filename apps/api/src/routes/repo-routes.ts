@@ -169,8 +169,8 @@ repoRoutes.get("/:id/health", async (req, res, next) => {
     if (error) throw error;
     if (!repo) throw createAppError("Repository not found", 404);
 
-    const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "./tmp/clones";
-    const repoPath = path.resolve(process.cwd(), CLONE_BASE_PATH, repo.owner, repo.name);
+    const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/clones";
+    const repoPath = path.resolve(CLONE_BASE_PATH, repo.owner, repo.name);
 
     // Get metrics
     const [
@@ -367,8 +367,8 @@ repoRoutes.get("/:id/functions/history", async (req, res, next) => {
     if (error) throw error;
     if (!repo) throw createAppError("Repository not found", 404);
 
-    const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "./tmp/clones";
-    const repoPath = path.resolve(process.cwd(), CLONE_BASE_PATH, repo.owner, repo.name);
+    const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/clones";
+    const repoPath = path.resolve(CLONE_BASE_PATH, repo.owner, repo.name);
 
     const history = await getFunctionHistory(repoPath, filePath, functionName);
 

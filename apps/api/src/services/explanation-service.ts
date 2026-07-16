@@ -5,7 +5,7 @@ import { createAppError } from "../middleware/error-handler";
 import * as path from "path";
 import { sanitizeSecrets } from "../lib/sanitize";
 
-const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "./tmp/clones";
+const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/clones";
 
 export interface ExplanationResponse {
   sha: string;
@@ -82,7 +82,7 @@ export async function streamCommitExplanation(repoId: string, sha: string, res: 
   }
 
   // 4. Retrieve the diff from the local clone
-  const repoPath = path.resolve(process.cwd(), CLONE_BASE_PATH, repo.owner, repo.name);
+  const repoPath = path.resolve(CLONE_BASE_PATH, repo.owner, repo.name);
   let diff = "";
   try {
     diff = await getCommitDiff(repoPath, sha);

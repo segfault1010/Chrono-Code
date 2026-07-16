@@ -6,7 +6,7 @@ import { promisify } from "util";
 import { createAppError } from "../middleware/error-handler";
 
 const execAsync = promisify(exec);
-const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "./tmp/clones";
+const CLONE_BASE_PATH = process.env.CLONE_BASE_PATH || "/tmp/clones";
 
 export async function validateGithubUrl(rawUrl: string): Promise<{ owner: string; name: string; normalizedUrl: string }> {
   console.log(`[Validation] Raw input: "${rawUrl}"`);
@@ -58,8 +58,8 @@ export async function validateGithubUrl(rawUrl: string): Promise<{ owner: string
 
 export async function cloneRepo(url: string, githubToken?: string): Promise<string> {
   const { owner, name, normalizedUrl } = await validateGithubUrl(url);
-  // Resolve against api directory root, assuming cwd is apps/api
-  const targetDir = path.resolve(process.cwd(), CLONE_BASE_PATH, owner, name);
+  // Resolve against CLONE_BASE_PATH directly
+  const targetDir = path.resolve(CLONE_BASE_PATH, owner, name);
   
   await fs.mkdir(targetDir, { recursive: true });
 
