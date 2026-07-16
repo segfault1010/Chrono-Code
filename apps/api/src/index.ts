@@ -36,10 +36,27 @@ const globalLimiter = rateLimit({
 
 app.use(globalLimiter);
 
+const configuredOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(url => url.replace(/\/$/, "")) 
+  : ["http://localhost:3000", "https://chrono-code-web.vercel.app"];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN 
-    ? process.env.CORS_ORIGIN.split(',') 
-    : ["http://localhost:3000", "https://chrono-code-web.vercel.app"],
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    // Check exact match from configuration
+    if (configuredOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Allow Vercel preview/branch deployments for the frontend project safely
+    if (/^https:\/\/(chrono-code-web|chronocode-web)(-[a-z0-9A-Z-]+)?\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    }
+    
+    // Reject other origins
+    return callback(null, false);
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-GitHub-Token"],
 }));
