@@ -1,4 +1,5 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { supabase } from "../lib/db";
 import { createAppError } from "../middleware/error-handler";
 import { getCachedAnalytics } from "../services/analytics-pipeline";

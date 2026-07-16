@@ -3,7 +3,8 @@
 // GET /api/commits/:sha/explain — Get or generate AI explanation for a commit
 // ============================================================================
 
-import { Router, Request, Response, NextFunction } from "express";
+import { Router } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { supabase } from "../lib/db";
 import rateLimit from "express-rate-limit";
 import { streamCommitExplanation } from "../services/explanation-service";

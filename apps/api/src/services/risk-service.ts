@@ -1,6 +1,6 @@
 import { supabase } from "../lib/db";
 import { model } from "../lib/gemini";
-import { Response } from "express";
+import type { Response } from "express";
 import { sanitizeSecrets } from "../lib/sanitize";
 
 const SYSTEM_PROMPT = `You are a Senior Security & Architecture Auditor.

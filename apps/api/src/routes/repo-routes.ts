@@ -4,7 +4,8 @@
 // GET  /api/repos/:id   — Get repository status and metadata
 // ============================================================================
 
-import { Router, Request, Response, NextFunction } from "express";
+import { Router } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { supabase } from "../lib/db";
 import { validateGithubUrl } from "../services/clone-service";
 import { startIndexingJob } from "../jobs/index-repo-job";

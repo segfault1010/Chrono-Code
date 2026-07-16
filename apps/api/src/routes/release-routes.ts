@@ -1,4 +1,5 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { streamReleaseNotes } from "../services/release-service";
 import { requireAuth } from "../middleware/auth-middleware";
 import { createAppError } from "../middleware/error-handler";

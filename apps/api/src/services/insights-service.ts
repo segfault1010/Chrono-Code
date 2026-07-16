@@ -1,6 +1,6 @@
 import { model } from "../lib/gemini";
 import type { RepositoryJourney, JourneyInsights } from "@chronocode/shared-types";
-import { Response } from "express";
+import type { Response } from "express";
 
 const SYSTEM_PROMPT = `You are a senior software architect analyzing the evolutionary journey of a codebase.
 Your goal is to summarize the project's history, identify key turning points, and evaluate its current health based on the provided milestones, phases, and activity data.
