@@ -106,25 +106,35 @@ async function bulkInsert(repoId: string, newCommits: ParsedCommit[]) {
     const chunk = newCommits.slice(i, i + CHUNK_SIZE);
     
     const commitsToInsert = chunk.map(pc => ({
-      id: randomUUID(),
       repo_id: repoId,
       ...pc.commit
     }));
     
-    // Insert commits
-    const { error: commitError } = await supabase
+    // Use upsert with ignoreDuplicates to avoid crashing on race conditions.
+    // This translates to INSERT ON CONFLICT DO NOTHING. It only returns newly inserted rows.
+    const { data: insertedCommits, error: commitError } = await supabase
       .from("commits")
-      .insert(commitsToInsert);
+      .upsert(commitsToInsert, { onConflict: "repo_id, sha", ignoreDuplicates: true })
+      .select("id, sha");
       
     if (commitError) {
       console.error(`[sync-engine] Bulk insert error at chunk ${i}:`, commitError);
       throw new Error(`Failed to insert commits: ${commitError.message}`);
     }
 
-    // Insert files
+    const shaToId = new Map<string, string>();
+    if (insertedCommits) {
+      for (const c of insertedCommits) {
+        shaToId.set(c.sha, c.id);
+      }
+    }
+
+    // Insert files only for commits that were successfully inserted
     const filesToInsert = [];
     for (let j = 0; j < chunk.length; j++) {
-      const commitId = commitsToInsert[j]!.id;
+      const commitId = shaToId.get(chunk[j]!.commit.sha);
+      if (!commitId) continue; // Commit was a duplicate and ignored
+
       for (const file of chunk[j]!.files) {
         filesToInsert.push({
           commit_id: commitId,
