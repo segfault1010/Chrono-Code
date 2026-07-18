@@ -7,6 +7,9 @@ Chronocode takes a public GitHub repository URL, indexes its full commit history
 ## Status
 
 🚧 **V1 — Done**
+🚧 **V2 (Auth & Persistence) — Done**
+🚧 **V3 (Intelligence Features) — In Progress**
+🚧 **V4 (Advanced Analysis) — In Progress**
 
 ## Tech Stack
 
