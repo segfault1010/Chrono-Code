@@ -56,10 +56,10 @@ const MetricProgressBar = ({ label, desc, v1, v2, format, isHigherBetter = true 
           <span className={`font-bold ${isWinner2 ? 'text-[var(--color-accent-primary)]' : 'text-gray-400'}`}>{displayV2}</span>
         )}
       </div>
-      <div className="flex h-2 w-full bg-white/5 rounded-full overflow-hidden">
-        <div className={`h-full transition-all duration-1000 ${isWinner1 ? 'bg-[var(--color-accent-primary)]' : 'bg-gray-600'}`} style={{ width: `${p1}%` }} />
-        <div className="w-1 bg-black" />
-        <div className={`h-full transition-all duration-1000 ${isWinner2 ? 'bg-[var(--color-accent-primary)]' : 'bg-gray-600'}`} style={{ width: `${p2}%` }} />
+      <div className="flex h-3 w-full bg-black/40 rounded-full overflow-hidden shadow-inner border border-white/5">
+        <div className={`h-full transition-all duration-1000 ${isWinner1 ? 'bg-[var(--color-accent-primary)] shadow-[0_0_10px_rgba(var(--color-accent-primary-rgb),0.5)]' : 'bg-white/20'}`} style={{ width: `${p1}%` }} />
+        <div className="w-0.5 bg-black/50" />
+        <div className={`h-full transition-all duration-1000 ${isWinner2 ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)] text-black' : 'bg-white/20'}`} style={{ width: `${p2}%` }} />
       </div>
     </div>
   );
@@ -125,30 +125,33 @@ export function CompareDashboard({ repo1Id, repo2Id }: CompareDashboardProps) {
     <div className="w-full flex flex-col gap-8 pb-16">
       
       {/* Header */}
-      <div className="flex items-center justify-between bg-[#111] border border-white/10 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-accent-primary)]/10 via-transparent to-[var(--color-accent-secondary)]/10 opacity-30" />
-        <div className="flex-1 flex flex-col items-center text-center z-10 gap-3">
+      <div className="flex items-center justify-between bg-white/5 backdrop-blur-md border border-white/5 rounded-2xl p-8 lg:p-12 shadow-2xl relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-accent-primary)]/10 via-transparent to-white/5 opacity-30 group-hover:opacity-50 transition-opacity duration-700" />
+        <div className="absolute top-1/2 left-0 w-64 h-64 bg-[var(--color-accent-primary)]/20 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="absolute top-1/2 right-0 w-64 h-64 bg-white/10 rounded-full blur-[100px] translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        
+        <div className="flex-1 flex flex-col items-center text-center z-10 gap-4">
           <PhaseBadge phase={metrics1.phase} />
-          <h2 className="text-3xl font-black text-white truncate px-4">{repo1.owner}/{repo1.name}</h2>
+          <h2 className="text-3xl lg:text-4xl font-black text-white truncate px-4 tracking-tight">{repo1.owner}/{repo1.name}</h2>
         </div>
-        <div className="text-4xl font-black text-white/20 mx-8 z-10 flex flex-col items-center">
-          <span className="text-xs uppercase tracking-widest mb-1">VS</span>
+        <div className="text-4xl font-black mx-4 lg:mx-8 z-10 flex flex-col items-center">
+          <span className="text-[10px] font-bold uppercase tracking-widest mb-3 text-[var(--color-text-tertiary)] bg-white/5 px-4 py-1.5 rounded-full border border-white/10 backdrop-blur-md shadow-sm">VS</span>
           <div className="w-px h-16 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
         </div>
-        <div className="flex-1 flex flex-col items-center text-center z-10 gap-3">
+        <div className="flex-1 flex flex-col items-center text-center z-10 gap-4">
           <PhaseBadge phase={metrics2.phase} />
-          <h2 className="text-3xl font-black text-white truncate px-4">{repo2.owner}/{repo2.name}</h2>
+          <h2 className="text-3xl lg:text-4xl font-black text-white truncate px-4 tracking-tight">{repo2.owner}/{repo2.name}</h2>
         </div>
       </div>
 
       {/* Head-to-Head Overview Summary */}
-      <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-6 shadow-xl text-center">
-        <h3 className="text-xl font-bold text-white mb-4">Summary Verdict</h3>
-        <p className="text-gray-300 leading-relaxed text-sm max-w-4xl mx-auto">
+      <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-2xl p-8 shadow-xl text-center relative overflow-hidden group hover:border-white/10 transition-colors">
+        <h3 className="text-xl font-bold text-white mb-4 tracking-tight">Summary Verdict</h3>
+        <p className="text-[var(--color-text-secondary)] leading-relaxed text-sm max-w-4xl mx-auto">
           {metrics1.healthScore > metrics2.healthScore 
             ? <><span className="text-[var(--color-accent-primary)] font-bold">{repo1.name}</span> currently exhibits a healthier development lifecycle overall with a score of {metrics1.healthScore} vs {metrics2.healthScore}. </>
             : metrics2.healthScore > metrics1.healthScore 
-              ? <><span className="text-[var(--color-accent-primary)] font-bold">{repo2.name}</span> currently exhibits a healthier development lifecycle overall with a score of {metrics2.healthScore} vs {metrics1.healthScore}. </>
+              ? <><span className="text-white font-bold">{repo2.name}</span> currently exhibits a healthier development lifecycle overall with a score of {metrics2.healthScore} vs {metrics1.healthScore}. </>
               : "Both repositories show identical health scores. "
           }
           {journey1.stats.repository_age_days > journey2.stats.repository_age_days 
@@ -160,38 +163,48 @@ export function CompareDashboard({ repo1Id, repo2Id }: CompareDashboardProps) {
       </div>
 
       {/* Detailed Verdict */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-6 shadow-xl">
-          <h3 className="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">{repo1.name} Verdict</h3>
-          <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        <div className="bg-white/5 backdrop-blur-md border border-white/5 hover:border-white/10 hover:bg-white/10 rounded-2xl p-6 lg:p-8 shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+          <h3 className="text-lg font-bold text-white mb-6 border-b border-white/10 pb-4 tracking-tight flex items-center justify-between">
+            {repo1.name} Verdict
+            <div className="w-8 h-8 rounded-full bg-[var(--color-accent-primary)]/10 flex items-center justify-center text-[var(--color-accent-primary)]">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </h3>
+          <div className="space-y-6">
             <div>
-              <span className="text-xs uppercase tracking-widest text-emerald-500 font-bold">Strengths</span>
-              <ul className="mt-2 space-y-1">
-                {metrics1.strengths.map((s, i) => <li key={i} className="text-sm text-gray-300 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"/>{s}</li>)}
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Strengths</span>
+              <ul className="mt-3 space-y-2">
+                {metrics1.strengths.map((s, i) => <li key={i} className="text-sm text-[var(--color-text-secondary)] flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 mt-1.5 flex-shrink-0"/>{s}</li>)}
               </ul>
             </div>
             <div>
-              <span className="text-xs uppercase tracking-widest text-red-500 font-bold">Areas for Improvement</span>
-              <ul className="mt-2 space-y-1">
-                {metrics1.weaknesses.map((s, i) => <li key={i} className="text-sm text-gray-300 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-red-500"/>{s}</li>)}
+              <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">Areas for Improvement</span>
+              <ul className="mt-3 space-y-2">
+                {metrics1.weaknesses.map((s, i) => <li key={i} className="text-sm text-[var(--color-text-secondary)] flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-red-500/50 mt-1.5 flex-shrink-0"/>{s}</li>)}
               </ul>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-6 shadow-xl">
-          <h3 className="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">{repo2.name} Verdict</h3>
-          <div className="space-y-4">
+        <div className="bg-white/5 backdrop-blur-md border border-white/5 hover:border-white/10 hover:bg-white/10 rounded-2xl p-6 lg:p-8 shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+          <h3 className="text-lg font-bold text-white mb-6 border-b border-white/10 pb-4 tracking-tight flex items-center justify-between">
+            {repo2.name} Verdict
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </h3>
+          <div className="space-y-6">
             <div>
-              <span className="text-xs uppercase tracking-widest text-emerald-500 font-bold">Strengths</span>
-              <ul className="mt-2 space-y-1">
-                {metrics2.strengths.map((s, i) => <li key={i} className="text-sm text-gray-300 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"/>{s}</li>)}
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Strengths</span>
+              <ul className="mt-3 space-y-2">
+                {metrics2.strengths.map((s, i) => <li key={i} className="text-sm text-[var(--color-text-secondary)] flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 mt-1.5 flex-shrink-0"/>{s}</li>)}
               </ul>
             </div>
             <div>
-              <span className="text-xs uppercase tracking-widest text-red-500 font-bold">Areas for Improvement</span>
-              <ul className="mt-2 space-y-1">
-                {metrics2.weaknesses.map((s, i) => <li key={i} className="text-sm text-gray-300 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-red-500"/>{s}</li>)}
+              <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">Areas for Improvement</span>
+              <ul className="mt-3 space-y-2">
+                {metrics2.weaknesses.map((s, i) => <li key={i} className="text-sm text-[var(--color-text-secondary)] flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-red-500/50 mt-1.5 flex-shrink-0"/>{s}</li>)}
               </ul>
             </div>
           </div>
@@ -199,9 +212,9 @@ export function CompareDashboard({ repo1Id, repo2Id }: CompareDashboardProps) {
       </div>
 
       {/* Normalized Metrics */}
-      <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-8 shadow-2xl">
-        <h3 className="text-xl font-bold text-white mb-6">Head-to-Head Comparison</h3>
-        <div className="flex flex-col gap-2">
+      <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-2xl p-6 lg:p-8 shadow-2xl">
+        <h3 className="text-xl font-bold text-white mb-8 tracking-tight">Head-to-Head Comparison</h3>
+        <div className="flex flex-col gap-4">
           <MetricProgressBar 
             label="Health Score" 
             desc="Calculated via velocity, releases, and refactors" 
