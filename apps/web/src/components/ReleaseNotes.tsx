@@ -84,19 +84,19 @@ export function ReleaseNotes({ repoId }: ReleaseNotesProps) {
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
-      <div className="bg-white/5 backdrop-blur-md p-6 lg:p-8 rounded-2xl border border-white/5 shadow-lg mb-6 relative overflow-hidden group">
+      <div className="bg-white/5 backdrop-blur-2xl p-6 lg:p-8 rounded-3xl border border-white/10 shadow-lg hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] mb-6 relative overflow-hidden group transition-all duration-500">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[var(--color-accent-primary)]/20 via-purple-500/10 to-transparent rounded-full blur-[100px] -mr-48 -mt-48 pointer-events-none transition-opacity duration-700 opacity-50 group-hover:opacity-100" />
         <h2 className="text-xl font-bold mb-4 text-white tracking-tight flex items-center gap-2 relative z-10">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--color-accent-primary)]"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           Automated Release Notes
         </h2>
-        <p className="text-[var(--color-text-secondary)] mb-6 text-sm max-w-2xl relative z-10">
+        <p className="text-white/60 mb-6 text-sm max-w-2xl font-medium relative z-10">
           Generate structured, professional release notes from your repository's recent commit history using AI.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 items-end relative z-10">
           <div className="flex-1 w-full relative">
-            <label className="block text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2 ml-2">
+            <label className="block text-[10px] font-bold text-white/50 uppercase tracking-wider mb-2 ml-2">
               Time Range
             </label>
             <svg className="absolute right-4 top-[38px] text-[var(--color-text-tertiary)] pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -104,7 +104,7 @@ export function ReleaseNotes({ repoId }: ReleaseNotesProps) {
               value={range}
               onChange={(e) => setRange(e.target.value)}
               disabled={isGenerating}
-              className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-3 text-sm text-white focus:outline-none focus:border-[var(--color-accent-primary)] focus:bg-white/10 transition-all appearance-none cursor-pointer shadow-sm"
+              className="w-full bg-black/40 border border-white/10 rounded-full px-6 py-3 text-sm text-white focus:outline-none focus:border-[var(--color-accent-primary)] focus:bg-black/60 focus:ring-2 focus:ring-[var(--color-accent-primary)]/30 transition-all appearance-none cursor-pointer shadow-inner"
             >
               <option value="last_50" className="bg-[#111]">Last 50 Commits</option>
               <option value="last_7_days" className="bg-[#111]">Last 7 Days</option>
@@ -114,7 +114,7 @@ export function ReleaseNotes({ repoId }: ReleaseNotesProps) {
           <Button 
             onClick={handleGenerate} 
             isLoading={isGenerating}
-            className="w-full sm:w-auto h-[50px] px-8 rounded-full font-semibold shadow-lg"
+            className="w-full sm:w-auto h-[50px] px-8 rounded-full font-bold shadow-[0_0_20px_rgba(var(--color-accent-primary-rgb),0.3)] hover:-translate-y-0.5 transition-transform bg-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/90 text-white"
           >
             {isGenerating ? "Generating..." : "Generate Release Notes"}
           </Button>
@@ -129,7 +129,7 @@ export function ReleaseNotes({ repoId }: ReleaseNotesProps) {
       )}
 
       {(markdown || isGenerating) && !error && (
-        <div className="bg-black/40 backdrop-blur-md p-6 sm:p-8 rounded-2xl border border-white/10 shadow-inner">
+        <div className="bg-[#0f0f0f]/80 backdrop-blur-2xl p-6 sm:p-10 rounded-3xl border border-white/10 shadow-inner">
           <div 
             className="prose prose-invert max-w-none text-[var(--color-text-secondary)] prose-headings:text-white prose-headings:tracking-tight prose-a:text-[var(--color-accent-primary)] prose-li:my-1 prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10"
             dangerouslySetInnerHTML={{ __html: parsedHtml }}

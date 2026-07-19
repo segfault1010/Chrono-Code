@@ -248,7 +248,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
     <div className="relative w-full rounded-2xl border border-white/5 bg-white/5 backdrop-blur-md flex flex-col shadow-2xl min-h-[500px]">
       
       {/* 1. Repository Story (AI) */}
-      <div className="flex-none p-6 border-b border-white/5 bg-[var(--color-bg-elevated)]/30 relative overflow-hidden group">
+      <div className="flex-none p-6 border-b border-white/5 bg-[#111]/60 backdrop-blur-2xl relative overflow-hidden group">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--color-accent-primary)] via-purple-500 to-pink-500 opacity-30 group-hover:opacity-100 transition-opacity duration-500" />
         <div className="flex items-center justify-between mb-3 relative z-10">
           <div className="flex items-center gap-4">
@@ -309,29 +309,35 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
       <div className="flex-none p-6 border-b border-white/5">
         <h3 className="text-lg font-bold text-white tracking-tight mb-4">Repository Overview</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
-            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Repo Age</span>
-            <span className="text-white font-bold text-2xl tracking-tight">{journey.stats.repository_age_days} <span className="text-sm font-normal text-[var(--color-text-tertiary)]">days</span></span>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex flex-col justify-center hover:bg-white/10 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all duration-300 group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <span className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1 group-hover:text-white/80 transition-colors relative z-10">Repo Age</span>
+            <span className="text-white font-bold text-2xl tracking-tight relative z-10">{journey.stats.repository_age_days} <span className="text-sm font-normal text-white/50">days</span></span>
           </div>
-          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
-            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Total Commits</span>
-            <span className="text-white font-bold text-2xl tracking-tight">{journey.stats.total_commits.toLocaleString()}</span>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex flex-col justify-center hover:bg-white/10 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all duration-300 group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <span className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1 group-hover:text-white/80 transition-colors relative z-10">Total Commits</span>
+            <span className="text-white font-bold text-2xl tracking-tight relative z-10">{journey.stats.total_commits.toLocaleString()}</span>
           </div>
-          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
-            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Releases</span>
-            <span className="text-yellow-400 font-bold text-2xl tracking-tight">{journey.stats.releases_count}</span>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex flex-col justify-center hover:bg-white/10 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all duration-300 group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <span className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1 group-hover:text-white/80 transition-colors relative z-10">Releases</span>
+            <span className="text-yellow-400 font-bold text-2xl tracking-tight relative z-10 shadow-[0_0_10px_rgba(250,204,21,0.2)]">{journey.stats.releases_count}</span>
           </div>
-          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
-            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Contributors</span>
-            <span className="text-white font-bold text-2xl tracking-tight">{journey.stats.contributors_count}</span>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex flex-col justify-center hover:bg-white/10 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all duration-300 group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <span className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1 group-hover:text-white/80 transition-colors relative z-10">Contributors</span>
+            <span className="text-white font-bold text-2xl tracking-tight relative z-10">{journey.stats.contributors_count}</span>
           </div>
-          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
-            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Major Refactors</span>
-            <span className="text-purple-400 font-bold text-2xl tracking-tight">{journey.stats.refactors_count}</span>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex flex-col justify-center hover:bg-white/10 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all duration-300 group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <span className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1 group-hover:text-white/80 transition-colors relative z-10">Major Refactors</span>
+            <span className="text-purple-400 font-bold text-2xl tracking-tight relative z-10 shadow-[0_0_10px_rgba(168,85,247,0.2)]">{journey.stats.refactors_count}</span>
           </div>
-          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
-            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Largest Commit</span>
-            <span className="text-blue-400 font-mono font-bold text-lg">{journey.stats.largest_commit_sha ? journey.stats.largest_commit_sha.substring(0, 7) : 'N/A'}</span>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex flex-col justify-center hover:bg-white/10 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all duration-300 group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <span className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1 group-hover:text-white/80 transition-colors relative z-10">Largest Commit</span>
+            <span className="text-blue-400 font-mono font-bold text-lg relative z-10 shadow-[0_0_10px_rgba(59,130,246,0.2)]">{journey.stats.largest_commit_sha ? journey.stats.largest_commit_sha.substring(0, 7) : 'N/A'}</span>
           </div>
         </div>
       </div>
@@ -630,25 +636,26 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
       {/* 4. Major Milestones List */}
       <div className="flex-none p-6 border-b border-white/5">
         <h3 className="text-lg font-bold text-white mb-4">Major Milestones</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {journey.milestones.slice(0, 9).map(m => (
-            <div key={m.sha} onClick={() => setSelectedMilestone(m)} className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 cursor-pointer hover:bg-white/10 hover:border-white/10 shadow-sm transition-all group flex flex-col gap-2">
-               <div className="flex items-center justify-between">
+            <div key={m.sha} onClick={() => setSelectedMilestone(m)} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 cursor-pointer hover:bg-white/10 hover:border-white/20 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] transition-all duration-300 group flex flex-col gap-3 relative overflow-hidden">
+               <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+               <div className="flex items-center justify-between relative z-10">
                  <span 
-                    className="text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded"
+                    className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded shadow-sm"
                     style={{ color: CATEGORY_COLORS[m.category], backgroundColor: `${CATEGORY_COLORS[m.category]}20` }}
                   >
                     {CATEGORY_LABELS[m.category]}
                  </span>
-                 <span className="text-[10px] text-[var(--color-text-tertiary)] font-mono group-hover:text-[var(--color-text-secondary)] transition-colors">{new Date(m.authored_at).toLocaleDateString()}</span>
+                 <span className="text-[10px] text-white/40 font-mono group-hover:text-white/70 transition-colors">{new Date(m.authored_at).toLocaleDateString()}</span>
                </div>
-               <p className="text-sm text-[var(--color-text-secondary)] font-medium line-clamp-2 group-hover:text-white transition-colors">{m.message.split('\n')[0]}</p>
-               <div className="flex items-center gap-3 mt-auto pt-3 border-t border-white/5 text-[10px] text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-secondary)] transition-colors">
-                 <span className="font-mono">+{m.insertions || 0}</span>
-                 <span className="font-mono">-{m.deletions || 0}</span>
+               <p className="text-sm text-white/70 font-medium line-clamp-2 group-hover:text-white transition-colors relative z-10">{m.message.split('\n')[0]}</p>
+               <div className="flex items-center gap-3 mt-auto pt-4 border-t border-white/10 text-[10px] text-white/40 group-hover:text-white/60 transition-colors relative z-10">
+                 <span className="font-mono text-green-400/80 group-hover:text-green-400">+{m.insertions || 0}</span>
+                 <span className="font-mono text-red-400/80 group-hover:text-red-400">-{m.deletions || 0}</span>
                  <span>{m.files_changed || 0} files</span>
-                 <span className="ml-auto flex items-center gap-1 font-semibold">
-                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                 <span className="ml-auto flex items-center gap-1.5 font-semibold text-white/60 group-hover:text-white">
+                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                    {m.author_name}
                  </span>
                </div>
@@ -659,53 +666,57 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
 
       {/* 5. Repository Insights */}
       <div className="flex-none p-6 pb-12">
-        <h3 className="text-lg font-bold text-white mb-4">Advanced Insights</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <h3 className="text-lg font-bold text-white mb-6">Advanced Insights</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           
-          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-5 relative overflow-hidden shadow-sm group hover:bg-white/10 hover:border-[var(--color-accent-primary)]/30 transition-all">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
-            <h4 className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-3">Health Score</h4>
-            <div className="flex items-end gap-2">
-              <span className={`text-4xl font-bold tracking-tight ${journey.stats.repository_health_score > 75 ? 'text-green-400' : journey.stats.repository_health_score > 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 relative overflow-hidden shadow-lg hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] group hover:bg-white/10 hover:border-green-500/30 hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-bl-[100px] -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-110" />
+            <h4 className="text-[10px] font-bold text-white/50 uppercase tracking-wider mb-4 relative z-10 group-hover:text-green-400/80 transition-colors">Health Score</h4>
+            <div className="flex items-end gap-2 relative z-10">
+              <span className={`text-5xl font-bold tracking-tight ${journey.stats.repository_health_score > 75 ? 'text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.4)]' : journey.stats.repository_health_score > 50 ? 'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.4)]' : 'text-red-400 drop-shadow-[0_0_15px_rgba(248,113,113,0.4)]'}`}>
                 {journey.stats.repository_health_score}
               </span>
-              <span className="text-sm text-[var(--color-text-tertiary)] font-medium mb-1">/ 100</span>
+              <span className="text-sm text-white/50 font-medium mb-1">/ 100</span>
             </div>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-2">Based on dev velocity, refactors, and consistency.</p>
+            <p className="text-xs text-white/50 mt-3 relative z-10 leading-relaxed">Based on dev velocity, refactors, and consistency.</p>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-5 relative overflow-hidden shadow-sm group hover:bg-white/10 hover:border-purple-500/30 transition-all">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
-            <h4 className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-3">Dev Velocity</h4>
-            <div className="flex items-end gap-2">
-              <span className="text-4xl font-bold tracking-tight text-white">
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 relative overflow-hidden shadow-lg hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] group hover:bg-white/10 hover:border-purple-500/30 hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-bl-[100px] -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-110" />
+            <h4 className="text-[10px] font-bold text-white/50 uppercase tracking-wider mb-4 relative z-10 group-hover:text-purple-400/80 transition-colors">Dev Velocity</h4>
+            <div className="flex items-end gap-2 relative z-10">
+              <span className="text-5xl font-bold tracking-tight text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                 {journey.stats.development_velocity}
               </span>
-              <span className="text-sm text-[var(--color-text-tertiary)] font-medium mb-1">commits/mo</span>
+              <span className="text-sm text-white/50 font-medium mb-1">commits/mo</span>
             </div>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-2">Average pace of development over active months.</p>
+            <p className="text-xs text-white/50 mt-3 relative z-10 leading-relaxed">Average pace of development over active months.</p>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-5 relative overflow-hidden shadow-sm group hover:bg-white/10 hover:border-orange-500/30 transition-all">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
-            <h4 className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-3">Peak Activity</h4>
-            <div className="flex flex-col gap-1">
-              <span className="text-2xl font-bold tracking-tight text-white">{journey.stats.most_active_month}</span>
-              <span className="text-sm text-[var(--color-text-tertiary)]">{journey.stats.most_active_year} was the most active year</span>
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 relative overflow-hidden shadow-lg hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] group hover:bg-white/10 hover:border-orange-500/30 hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-bl-[100px] -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-110" />
+            <h4 className="text-[10px] font-bold text-white/50 uppercase tracking-wider mb-4 relative z-10 group-hover:text-orange-400/80 transition-colors">Peak Activity</h4>
+            <div className="flex flex-col gap-1 relative z-10">
+              <span className="text-3xl font-bold tracking-tight text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">{journey.stats.most_active_month}</span>
+              <span className="text-sm text-white/60">{journey.stats.most_active_year} was the most active year</span>
             </div>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-3">{journey.stats.most_active_month_count} commits during peak month.</p>
+            <p className="text-xs text-white/50 mt-3 relative z-10 leading-relaxed"><strong className="text-white/80">{journey.stats.most_active_month_count} commits</strong> during peak month.</p>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-5 relative overflow-hidden shadow-sm group hover:bg-white/10 hover:border-red-500/30 transition-all">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
-            <h4 className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-3">Commit Size</h4>
-            <div className="flex items-end gap-2">
-              <span className="text-4xl font-bold tracking-tight text-white">
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 relative overflow-hidden shadow-lg hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] group hover:bg-white/10 hover:border-blue-500/30 hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-bl-[100px] -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-110" />
+            <h4 className="text-[10px] font-bold text-white/50 uppercase tracking-wider mb-4 relative z-10 group-hover:text-blue-400/80 transition-colors">Commit Size</h4>
+            <div className="flex items-end gap-2 relative z-10">
+              <span className="text-5xl font-bold tracking-tight text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                 ~{journey.stats.average_commit_size}
               </span>
-              <span className="text-sm text-[var(--color-text-tertiary)] font-medium mb-1">lines</span>
+              <span className="text-sm text-white/50 font-medium mb-1">lines</span>
             </div>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-2">Longest inactive gap: {journey.stats.longest_inactive_period_days} days.</p>
+            <p className="text-xs text-white/50 mt-3 relative z-10 leading-relaxed">Longest inactive gap: <strong className="text-white/80">{journey.stats.longest_inactive_period_days} days</strong>.</p>
           </div>
 
         </div>

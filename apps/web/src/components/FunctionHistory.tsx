@@ -36,38 +36,38 @@ export function FunctionHistory({ repoId }: FunctionHistoryProps) {
 
   return (
     <div className="animate-fade-in">
-      <div className="mb-8 p-6 lg:p-8 bg-white/5 backdrop-blur-md border border-white/5 shadow-lg rounded-2xl relative overflow-hidden">
+      <div className="mb-8 p-6 lg:p-8 bg-white/5 backdrop-blur-2xl border border-white/10 shadow-lg rounded-3xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-accent-primary)]/10 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none" />
         <h2 className="text-xl font-bold mb-2 text-white tracking-tight">Function-Level History</h2>
-        <p className="text-[var(--color-text-secondary)] text-sm mb-6 max-w-2xl">
+        <p className="text-white/60 text-sm mb-6 max-w-2xl font-medium">
           Trace the exact evolution of a single function over time. Enter the file path and function name to isolate its history.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 relative z-10">
           <div className="flex-1">
-            <label className="block text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2 ml-2">File Path</label>
+            <label className="block text-[10px] font-bold text-white/50 uppercase tracking-wider mb-2 ml-2">File Path</label>
             <input
               type="text"
               required
               placeholder="e.g., src/utils.ts"
               value={filePath}
               onChange={(e) => setFilePath(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-3 text-white focus:outline-none focus:border-[var(--color-accent-primary)] focus:bg-white/10 shadow-sm transition-all"
+              className="w-full bg-black/40 border border-white/10 rounded-full px-6 py-3 text-white focus:outline-none focus:border-[var(--color-accent-primary)] focus:bg-black/60 focus:ring-2 focus:ring-[var(--color-accent-primary)]/30 shadow-inner transition-all placeholder:text-white/20"
             />
           </div>
           <div className="flex-1">
-            <label className="block text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2 ml-2">Function Name</label>
+            <label className="block text-[10px] font-bold text-white/50 uppercase tracking-wider mb-2 ml-2">Function Name</label>
             <input
               type="text"
               required
               placeholder="e.g., calculateStats"
               value={functionName}
               onChange={(e) => setFunctionName(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-3 text-white focus:outline-none focus:border-[var(--color-accent-primary)] focus:bg-white/10 shadow-sm transition-all"
+              className="w-full bg-black/40 border border-white/10 rounded-full px-6 py-3 text-white focus:outline-none focus:border-[var(--color-accent-primary)] focus:bg-black/60 focus:ring-2 focus:ring-[var(--color-accent-primary)]/30 shadow-inner transition-all placeholder:text-white/20"
             />
           </div>
           <div className="flex items-end">
-            <Button type="submit" isLoading={isLoading} className="h-[50px] px-8 whitespace-nowrap rounded-full font-semibold shadow-lg">
+            <Button type="submit" isLoading={isLoading} className="h-[50px] px-8 whitespace-nowrap rounded-full font-bold shadow-[0_0_20px_rgba(var(--color-accent-primary-rgb),0.3)] hover:-translate-y-0.5 transition-transform bg-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/90 text-white">
               Trace Function
             </Button>
           </div>
@@ -102,12 +102,13 @@ export function FunctionHistory({ repoId }: FunctionHistoryProps) {
                 <div className="w-3 h-3 rounded-full bg-[var(--color-bg-primary)] border-2 border-[var(--color-accent-primary)] shadow-[0_0_15px_rgba(var(--color-accent-primary-rgb),0.5)] z-10 relative group-hover:scale-150 transition-transform duration-300" />
               </div>
 
-              <div className="flex-1 p-6 transition-all duration-300 hover:shadow-xl hover:border-white/20 bg-white/5 backdrop-blur-md border border-white/5 rounded-2xl shadow-sm">
-                <div className="mb-4 pb-4 border-b border-white/10">
+              <div className="flex-1 p-6 transition-all duration-500 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl hover:bg-white/10 hover:border-white/20 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <div className="mb-4 pb-4 border-b border-white/10 relative z-10">
                   <h3 className="text-lg font-bold mb-2 text-white tracking-tight">
                     {commit.message}
                   </h3>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--color-text-tertiary)] font-medium">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-white/50 font-medium">
                     <span className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       {commit.author_name}

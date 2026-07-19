@@ -156,39 +156,42 @@ export function AnalyticsDashboard({ repoId, isIndexing }: AnalyticsDashboardPro
 
       {/* Non-Technical Executive Insights */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-         <Card className="p-5 bg-white/5 backdrop-blur-md border border-white/5 flex flex-col justify-between hover:bg-white/10 hover:border-white/10 transition-all rounded-xl shadow-sm group">
-            <p className="text-sm text-[var(--color-text-tertiary)] font-medium mb-2 group-hover:text-[var(--color-text-secondary)] transition-colors">Project Momentum (30d)</p>
-            <div>
-               <h3 className={`text-3xl font-bold tracking-tight ${momentumColor}`}>{momentumText}</h3>
-               <p className="text-xs text-[var(--color-text-tertiary)] mt-1 font-medium">{recentCommits} commits in the last 30 days</p>
+         <Card className="p-6 bg-white/5 backdrop-blur-2xl border border-white/10 flex flex-col justify-between hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] rounded-2xl shadow-lg group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-xs uppercase tracking-wider text-white/50 font-bold mb-2 group-hover:text-white/80 transition-colors relative z-10">Project Momentum (30d)</p>
+            <div className="relative z-10">
+               <h3 className={`text-4xl font-bold tracking-tight ${momentumColor}`}>{momentumText}</h3>
+               <p className="text-sm text-white/50 mt-2 font-medium">{recentCommits} commits in the last 30 days</p>
             </div>
          </Card>
          
-         <Card className="p-5 bg-white/5 backdrop-blur-md border border-white/5 flex flex-col justify-between hover:bg-white/10 hover:border-white/10 transition-all rounded-xl shadow-sm group">
-            <p className="text-sm text-[var(--color-text-tertiary)] font-medium mb-2 group-hover:text-[var(--color-text-secondary)] transition-colors">Primary Maintainer</p>
-            <div>
-               <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--color-text-primary)] truncate" title={topContrib?.author_name || "Unknown"}>
+         <Card className="p-6 bg-white/5 backdrop-blur-2xl border border-white/10 flex flex-col justify-between hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] rounded-2xl shadow-lg group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-xs uppercase tracking-wider text-white/50 font-bold mb-2 group-hover:text-white/80 transition-colors relative z-10">Primary Maintainer</p>
+            <div className="relative z-10">
+               <h3 className="text-3xl sm:text-4xl font-bold tracking-tight text-white truncate" title={topContrib?.author_name || "Unknown"}>
                  {topContrib?.author_name || "Unknown"}
                </h3>
-               <p className="text-xs text-[var(--color-text-tertiary)] mt-1 font-medium">
+               <p className="text-sm text-white/50 mt-2 font-medium">
                  {topContribPercentage > 0 ? `Drove ${topContribPercentage}% of all historical changes` : "No commits yet"}
                </p>
             </div>
          </Card>
 
-         <Card className="p-5 bg-white/5 backdrop-blur-md border border-white/5 flex flex-col justify-between hover:bg-white/10 hover:border-white/10 transition-all rounded-xl shadow-sm group">
-            <p className="text-sm text-[var(--color-text-tertiary)] font-medium mb-2 group-hover:text-[var(--color-text-secondary)] transition-colors">Historical Scale</p>
-            <div>
-               <h3 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">{totalCommits.toLocaleString()}</h3>
-               <p className="text-xs text-[var(--color-text-tertiary)] mt-1 font-medium">Total lifetime commits</p>
+         <Card className="p-6 bg-white/5 backdrop-blur-2xl border border-white/10 flex flex-col justify-between hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] rounded-2xl shadow-lg group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-xs uppercase tracking-wider text-white/50 font-bold mb-2 group-hover:text-white/80 transition-colors relative z-10">Historical Scale</p>
+            <div className="relative z-10">
+               <h3 className="text-4xl font-bold tracking-tight text-white">{totalCommits.toLocaleString()}</h3>
+               <p className="text-sm text-white/50 mt-2 font-medium">Total lifetime commits</p>
             </div>
          </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Activity Timeline Chart - Soft Area Chart */}
-        <Card className="p-6 bg-white/5 backdrop-blur-md border border-white/5 rounded-xl shadow-sm flex flex-col h-[350px]">
-          <h3 className="text-lg font-bold mb-6 text-[var(--color-text-primary)] tracking-tight">Commit Velocity</h3>
+        <Card className="p-6 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-lg hover:shadow-[0_15px_40px_rgba(0,0,0,0.3)] transition-all duration-500 flex flex-col h-[350px]">
+          <h3 className="text-lg font-bold mb-6 text-white tracking-tight">Commit Velocity</h3>
           <div className="flex-1 w-full min-h-0">
             {data.activityTimeline.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -239,14 +242,14 @@ export function AnalyticsDashboard({ repoId, isIndexing }: AnalyticsDashboardPro
         </Card>
 
         {/* Top Contributors - Clean UI */}
-        <Card className="p-6 bg-white/5 backdrop-blur-md border border-white/5 rounded-xl shadow-sm flex flex-col h-[350px]">
-          <h3 className="text-lg font-bold mb-6 text-[var(--color-text-primary)] tracking-tight">Key Contributors</h3>
+        <Card className="p-6 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-lg hover:shadow-[0_15px_40px_rgba(0,0,0,0.3)] transition-all duration-500 flex flex-col h-[350px]">
+          <h3 className="text-lg font-bold mb-6 text-white tracking-tight">Key Contributors</h3>
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
             {data.topContributors.length > 0 ? (
               data.topContributors.map((contrib: any, index: number) => {
                 const percentage = totalCommits > 0 ? Math.round((parseInt(contrib.commit_count) / totalCommits) * 100) : 0;
                 return (
-                  <div key={contrib.author_name} className="relative group overflow-hidden rounded-xl border border-white/5 bg-white/5 p-3 hover:bg-white/10 transition-colors cursor-default">
+                  <div key={contrib.author_name} className="relative group overflow-hidden rounded-xl border border-white/5 bg-white/5 p-4 hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.02] shadow-sm hover:shadow-lg cursor-default">
                     {/* Horizontal progress bar */}
                     <div 
                       className="absolute inset-y-0 left-0 bg-[var(--color-accent-primary)]/10 z-0 transition-all duration-1000 ease-out group-hover:bg-[var(--color-accent-primary)]/20"
@@ -255,16 +258,16 @@ export function AnalyticsDashboard({ repoId, isIndexing }: AnalyticsDashboardPro
                     
                     <div className="relative z-10 flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] text-white font-bold text-sm shadow-md">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-accent-primary)] to-purple-500 text-white font-bold text-sm shadow-md border border-white/10 group-hover:shadow-[0_0_15px_var(--color-accent-primary)] transition-all duration-300">
                           {contrib.author_name.substring(0, 1).toUpperCase()}
                         </div>
                         <div>
-                          <span className="font-semibold text-[var(--color-text-primary)] block group-hover:text-white transition-colors">{contrib.author_name}</span>
-                          <span className="text-xs text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-secondary)] transition-colors">{parseInt(contrib.commit_count).toLocaleString()} commits</span>
+                          <span className="font-bold text-white/90 block group-hover:text-white transition-colors">{contrib.author_name}</span>
+                          <span className="text-xs text-white/50 group-hover:text-white/80 transition-colors font-medium">{parseInt(contrib.commit_count).toLocaleString()} commits</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                         <span className="text-sm font-bold text-[var(--color-accent-primary)]">
+                         <span className="text-sm font-bold text-[var(--color-accent-primary)] group-hover:text-white transition-colors">
                            {percentage}%
                          </span>
                       </div>
