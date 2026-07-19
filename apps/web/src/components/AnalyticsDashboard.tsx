@@ -64,11 +64,37 @@ export function AnalyticsDashboard({ repoId, isIndexing }: AnalyticsDashboardPro
 
   if ((isLoading && !data) || (isGenerating && (!data?.topContributors || data.topContributors.length === 0))) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-3 animate-fade-in border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-elevated)]/30 h-64">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-accent-primary)] border-t-transparent animate-spin"></div>
-        <p className="text-[var(--color-text-tertiary)] text-sm font-medium tracking-wide">
-          {isGenerating ? "Analyzing contributor activity in the background..." : "Loading analytics..."}
-        </p>
+      <div className="flex flex-col gap-6 animate-fade-in w-full">
+        <div className="flex items-center justify-end gap-2 mb-2">
+           <div className="w-3 h-3 rounded-full border-2 border-[var(--color-accent-primary)] border-t-transparent animate-spin" />
+           <p className="text-[var(--color-text-tertiary)] text-xs font-medium tracking-wide">
+             {isGenerating ? "Analyzing contributor activity in the background..." : "Loading analytics..."}
+           </p>
+        </div>
+        {/* Shimmer top cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="p-5 bg-white/5 border border-white/5 backdrop-blur-md h-[104px] rounded-xl flex flex-col justify-between" style={{ animation: `pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite`, animationDelay: `${i * 150}ms` }}>
+               <div className="w-1/2 h-3 bg-white/10 rounded-full" />
+               <div className="w-3/4 h-6 bg-white/10 rounded-lg mt-4" />
+            </Card>
+          ))}
+        </div>
+        {/* Shimmer charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+           <Card className="p-6 bg-white/5 border border-white/5 backdrop-blur-md h-[350px] rounded-xl flex flex-col animate-pulse" style={{ animationDelay: '450ms' }}>
+              <div className="w-1/3 h-5 bg-white/10 rounded-lg mb-6" />
+              <div className="flex-1 w-full bg-white/5 rounded-lg" />
+           </Card>
+           <Card className="p-6 bg-white/5 border border-white/5 backdrop-blur-md h-[350px] rounded-xl flex flex-col animate-pulse" style={{ animationDelay: '600ms' }}>
+              <div className="w-1/3 h-5 bg-white/10 rounded-lg mb-6" />
+              <div className="flex flex-col gap-3">
+                 {[1, 2, 3, 4, 5].map((j) => (
+                   <div key={j} className="w-full h-12 bg-white/5 rounded-xl" />
+                 ))}
+              </div>
+           </Card>
+        </div>
       </div>
     );
   }
@@ -130,70 +156,82 @@ export function AnalyticsDashboard({ repoId, isIndexing }: AnalyticsDashboardPro
 
       {/* Non-Technical Executive Insights */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-         <Card className="p-5 bg-[var(--color-bg-elevated)]/60 backdrop-blur-sm border-[var(--color-border)] flex flex-col justify-between hover:border-[var(--color-accent-primary)]/50 transition-colors">
-            <p className="text-sm text-[var(--color-text-secondary)] font-medium mb-2">Project Momentum (30d)</p>
+         <Card className="p-5 bg-white/5 backdrop-blur-md border border-white/5 flex flex-col justify-between hover:bg-white/10 hover:border-white/10 transition-all rounded-xl shadow-sm group">
+            <p className="text-sm text-[var(--color-text-tertiary)] font-medium mb-2 group-hover:text-[var(--color-text-secondary)] transition-colors">Project Momentum (30d)</p>
             <div>
-               <h3 className={`text-2xl font-black ${momentumColor}`}>{momentumText}</h3>
-               <p className="text-xs text-[var(--color-text-tertiary)] mt-1">{recentCommits} commits in the last 30 days</p>
+               <h3 className={`text-3xl font-bold tracking-tight ${momentumColor}`}>{momentumText}</h3>
+               <p className="text-xs text-[var(--color-text-tertiary)] mt-1 font-medium">{recentCommits} commits in the last 30 days</p>
             </div>
          </Card>
          
-         <Card className="p-5 bg-[var(--color-bg-elevated)]/60 backdrop-blur-sm border-[var(--color-border)] flex flex-col justify-between hover:border-[var(--color-accent-primary)]/50 transition-colors">
-            <p className="text-sm text-[var(--color-text-secondary)] font-medium mb-2">Primary Maintainer</p>
+         <Card className="p-5 bg-white/5 backdrop-blur-md border border-white/5 flex flex-col justify-between hover:bg-white/10 hover:border-white/10 transition-all rounded-xl shadow-sm group">
+            <p className="text-sm text-[var(--color-text-tertiary)] font-medium mb-2 group-hover:text-[var(--color-text-secondary)] transition-colors">Primary Maintainer</p>
             <div>
-               <h3 className="text-xl font-bold text-white truncate" title={topContrib?.author_name || "Unknown"}>
+               <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--color-text-primary)] truncate" title={topContrib?.author_name || "Unknown"}>
                  {topContrib?.author_name || "Unknown"}
                </h3>
-               <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+               <p className="text-xs text-[var(--color-text-tertiary)] mt-1 font-medium">
                  {topContribPercentage > 0 ? `Drove ${topContribPercentage}% of all historical changes` : "No commits yet"}
                </p>
             </div>
          </Card>
 
-         <Card className="p-5 bg-[var(--color-bg-elevated)]/60 backdrop-blur-sm border-[var(--color-border)] flex flex-col justify-between hover:border-[var(--color-accent-primary)]/50 transition-colors">
-            <p className="text-sm text-[var(--color-text-secondary)] font-medium mb-2">Historical Scale</p>
+         <Card className="p-5 bg-white/5 backdrop-blur-md border border-white/5 flex flex-col justify-between hover:bg-white/10 hover:border-white/10 transition-all rounded-xl shadow-sm group">
+            <p className="text-sm text-[var(--color-text-tertiary)] font-medium mb-2 group-hover:text-[var(--color-text-secondary)] transition-colors">Historical Scale</p>
             <div>
-               <h3 className="text-2xl font-black text-white">{totalCommits.toLocaleString()}</h3>
-               <p className="text-xs text-[var(--color-text-tertiary)] mt-1">Total lifetime commits</p>
+               <h3 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">{totalCommits.toLocaleString()}</h3>
+               <p className="text-xs text-[var(--color-text-tertiary)] mt-1 font-medium">Total lifetime commits</p>
             </div>
          </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Activity Timeline Chart - Soft Area Chart */}
-        <Card className="p-6 bg-[var(--color-bg-elevated)]/60 backdrop-blur-sm border-[var(--color-border)] flex flex-col h-[350px]">
-          <h3 className="text-lg font-bold mb-6 text-[var(--color-text-primary)]">Commit Velocity</h3>
+        <Card className="p-6 bg-white/5 backdrop-blur-md border border-white/5 rounded-xl shadow-sm flex flex-col h-[350px]">
+          <h3 className="text-lg font-bold mb-6 text-[var(--color-text-primary)] tracking-tight">Commit Velocity</h3>
           <div className="flex-1 w-full min-h-0">
             {data.activityTimeline.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data.activityTimeline} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorCommits" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-accent-primary)" stopOpacity={0.3}/>
+                      <stop offset="5%" stopColor="var(--color-accent-primary)" stopOpacity={0.4}/>
                       <stop offset="95%" stopColor="var(--color-accent-primary)" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                   <XAxis 
                     dataKey="activity_date" 
                     stroke="var(--color-text-tertiary)" 
                     fontSize={12}
                     tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    axisLine={false}
+                    tickLine={false}
+                    dy={10}
                   />
-                  <YAxis stroke="var(--color-text-tertiary)" fontSize={12} allowDecimals={false} />
+                  <YAxis 
+                    stroke="var(--color-text-tertiary)" 
+                    fontSize={12} 
+                    allowDecimals={false} 
+                    axisLine={false}
+                    tickLine={false}
+                    dx={-10}
+                  />
                   <Tooltip 
                     cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '3 3' }}
-                    contentStyle={{ backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: '8px' }}
-                    labelFormatter={(val) => new Date(val).toLocaleDateString()}
+                    contentStyle={{ backgroundColor: 'rgba(10, 10, 10, 0.8)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
+                    itemStyle={{ color: 'var(--color-text-primary)', fontWeight: 600 }}
+                    labelStyle={{ color: 'var(--color-text-secondary)', marginBottom: '4px' }}
+                    labelFormatter={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                   />
-                  <Area type="monotone" dataKey="commit_count" stroke="var(--color-accent-primary)" strokeWidth={2} fillOpacity={1} fill="url(#colorCommits)" />
+                  <Area type="monotone" dataKey="commit_count" stroke="var(--color-accent-primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorCommits)" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-               <div className="h-full flex items-center justify-center text-[var(--color-text-secondary)] bg-[#0A0A0A] rounded-xl border border-white/5">
+               <div className="h-full flex items-center justify-center text-[var(--color-text-secondary)] bg-white/5 rounded-xl border border-white/5">
                  <div className="text-center">
-                    <svg className="w-8 h-8 mx-auto text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <p>No commits in the last 30 days</p>
+                    <svg className="w-8 h-8 mx-auto text-[var(--color-text-tertiary)] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p className="text-sm">No commits in the last 30 days</p>
                  </div>
                </div>
             )}
@@ -201,32 +239,41 @@ export function AnalyticsDashboard({ repoId, isIndexing }: AnalyticsDashboardPro
         </Card>
 
         {/* Top Contributors - Clean UI */}
-        <Card className="p-6 bg-[var(--color-bg-elevated)]/60 backdrop-blur-sm border-[var(--color-border)] flex flex-col h-[350px]">
-          <h3 className="text-lg font-bold mb-6 text-[var(--color-text-primary)]">Key Contributors</h3>
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">
+        <Card className="p-6 bg-white/5 backdrop-blur-md border border-white/5 rounded-xl shadow-sm flex flex-col h-[350px]">
+          <h3 className="text-lg font-bold mb-6 text-[var(--color-text-primary)] tracking-tight">Key Contributors</h3>
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
             {data.topContributors.length > 0 ? (
-              data.topContributors.map((contrib: any, index: number) => (
-                <div key={contrib.author_name} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-[var(--color-accent-primary)] to-blue-600 text-white font-bold text-sm shadow-lg">
-                      {contrib.author_name.substring(0, 1).toUpperCase()}
-                    </div>
-                    <div>
-                      <span className="font-semibold text-white block">{contrib.author_name}</span>
-                      <span className="text-xs text-gray-400">{parseInt(contrib.commit_count).toLocaleString()} commits</span>
+              data.topContributors.map((contrib: any, index: number) => {
+                const percentage = totalCommits > 0 ? Math.round((parseInt(contrib.commit_count) / totalCommits) * 100) : 0;
+                return (
+                  <div key={contrib.author_name} className="relative group overflow-hidden rounded-xl border border-white/5 bg-white/5 p-3 hover:bg-white/10 transition-colors cursor-default">
+                    {/* Horizontal progress bar */}
+                    <div 
+                      className="absolute inset-y-0 left-0 bg-[var(--color-accent-primary)]/10 z-0 transition-all duration-1000 ease-out group-hover:bg-[var(--color-accent-primary)]/20"
+                      style={{ width: `${percentage}%` }}
+                    />
+                    
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] text-white font-bold text-sm shadow-md">
+                          {contrib.author_name.substring(0, 1).toUpperCase()}
+                        </div>
+                        <div>
+                          <span className="font-semibold text-[var(--color-text-primary)] block group-hover:text-white transition-colors">{contrib.author_name}</span>
+                          <span className="text-xs text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-secondary)] transition-colors">{parseInt(contrib.commit_count).toLocaleString()} commits</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                         <span className="text-sm font-bold text-[var(--color-accent-primary)]">
+                           {percentage}%
+                         </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-right">
-                       <span className="text-sm font-bold text-[var(--color-accent-primary)]">
-                         {totalCommits > 0 ? Math.round((parseInt(contrib.commit_count) / totalCommits) * 100) : 0}%
-                       </span>
-                    </div>
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <div className="h-full flex items-center justify-center text-[var(--color-text-secondary)]">No contributors found</div>
+              <div className="h-full flex items-center justify-center text-[var(--color-text-secondary)] text-sm">No contributors found</div>
             )}
           </div>
         </Card>

@@ -170,12 +170,34 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
 
   if ((loading && !journey) || (isGenerating && (!journey?.milestones || journey.milestones.length === 0))) {
     return (
-      <div className="w-full h-96 flex items-center justify-center border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-elevated)]/30">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-[var(--color-accent-primary)] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[var(--color-text-tertiary)] text-sm font-medium tracking-wide">
-            {isGenerating ? "Analyzing repository journey in the background..." : "Mapping Repository Journey..."}
-          </p>
+      <div className="relative w-full rounded-2xl border border-white/5 bg-white/5 backdrop-blur-md flex flex-col shadow-2xl min-h-[500px] overflow-hidden animate-fade-in">
+        <div className="flex items-center justify-end gap-2 p-6 pb-0 mb-4 border-b border-white/5 bg-gradient-to-r from-transparent to-white/5">
+           <div className="w-3 h-3 rounded-full border-2 border-[var(--color-accent-primary)] border-t-transparent animate-spin mb-4" />
+           <p className="text-[var(--color-text-tertiary)] text-xs font-medium tracking-wide mb-4">
+             {isGenerating ? "Analyzing repository journey in the background..." : "Mapping Repository Journey..."}
+           </p>
+        </div>
+        
+        {/* Shimmer AI Story */}
+        <div className="p-6 border-b border-white/5" style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite', animationDelay: '150ms' }}>
+          <div className="w-48 h-6 bg-white/10 rounded-lg mb-4" />
+          <div className="w-3/4 h-3 bg-white/5 rounded-full mb-2" />
+          <div className="w-1/2 h-3 bg-white/5 rounded-full" />
+        </div>
+
+        {/* Shimmer Overview Grid */}
+        <div className="p-6 border-b border-white/5" style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite', animationDelay: '300ms' }}>
+          <div className="w-32 h-5 bg-white/10 rounded-lg mb-4" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+             {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="bg-white/5 rounded-lg h-20" />
+             ))}
+          </div>
+        </div>
+
+        {/* Shimmer Timeline Canvas */}
+        <div className="p-6 h-[400px] bg-black/20" style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite', animationDelay: '450ms' }}>
+          <div className="w-64 h-6 bg-white/10 rounded-lg mb-4" />
         </div>
       </div>
     );
@@ -223,18 +245,19 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
   };
 
   return (
-    <div className="relative w-full rounded-2xl border border-[var(--color-border)] bg-[#0A0A0A] flex flex-col shadow-2xl min-h-[500px]">
+    <div className="relative w-full rounded-2xl border border-white/5 bg-white/5 backdrop-blur-md flex flex-col shadow-2xl min-h-[500px]">
       
       {/* 1. Repository Story (AI) */}
-      <div className="flex-none p-6 border-b border-white/10 bg-gradient-to-r from-[#111] to-[#1a1a1a]">
-        <div className="flex items-center justify-between mb-3">
+      <div className="flex-none p-6 border-b border-white/5 bg-[var(--color-bg-elevated)]/30 relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--color-accent-primary)] via-purple-500 to-pink-500 opacity-30 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="flex items-center justify-between mb-3 relative z-10">
           <div className="flex items-center gap-4">
-            <h3 className="text-xl font-bold text-white tracking-wide flex items-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><path d="M2 15h10"/><path d="M9 18l3-3-3-3"/></svg>
+            <h3 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--color-accent-primary)]"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><path d="M2 15h10"/><path d="M9 18l3-3-3-3"/></svg>
               Repository Story
             </h3>
             {journey?._meta?.generated_at && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-[var(--color-text-tertiary)] font-medium">
                 Generated at {new Date(journey._meta.generated_at).toLocaleString()}
                 {journey._meta.status === 'outdated' && " (Update in progress...)"}
                 {journey._meta.status === 'computing' && " (Computing...)"}
@@ -245,7 +268,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
             <button
               onClick={() => fetchInsights(false, true)}
               disabled={insightsLoading}
-              className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+              className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-[var(--color-text-secondary)] hover:text-white transition-all disabled:opacity-50 shadow-sm"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 2.13-5.88L2 9"/></svg>
               Refresh Analysis
@@ -254,34 +277,29 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
         </div>
         
         {insights?.status === 'generating' || (insightsLoading && !insights) ? (
-           <div className="animate-pulse space-y-2">
-             <div className="h-4 bg-white/10 rounded w-full"></div>
-             <div className="h-4 bg-white/10 rounded w-5/6"></div>
-             <div className="h-4 bg-white/10 rounded w-4/6"></div>
-             <p className="text-xs text-[var(--color-accent-primary)] mt-3">Analyzing repository evolution...</p>
+           <div className="animate-pulse space-y-2 relative z-10 mt-4">
+             <div className="h-4 bg-white/10 rounded-full w-full"></div>
+             <div className="h-4 bg-white/10 rounded-full w-5/6"></div>
+             <div className="h-4 bg-white/10 rounded-full w-4/6"></div>
+             <p className="text-xs text-[var(--color-accent-primary)] mt-3 font-medium">Analyzing repository evolution...</p>
            </div>
         ) : insights?.status === 'completed' && insights.ai_summary ? (
-           <div className="flex flex-col gap-2">
-             <p className="text-sm text-gray-300 leading-relaxed max-w-5xl">{insights.ai_summary}</p>
-             {insights.updated_at && (
-               <span className="text-[10px] text-gray-500 font-mono">
-                 Generated on {new Date(insights.updated_at).toLocaleString()}
-               </span>
-             )}
+           <div className="flex flex-col gap-2 relative z-10 mt-2">
+             <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-5xl">{insights.ai_summary}</p>
            </div>
         ) : (
-           <div className="flex flex-col items-start gap-3">
-             <p className="text-sm text-gray-400">An AI-generated narrative of this repository's evolution is available.</p>
+           <div className="flex flex-col items-start gap-3 relative z-10 mt-2">
+             <p className="text-sm text-[var(--color-text-secondary)]">An AI-generated narrative of this repository's evolution is available.</p>
              {user ? (
                <button
                  onClick={() => fetchInsights(false, true)}
-                 className="bg-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/80 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(var(--color-accent-primary-rgb),0.3)]"
+                 className="bg-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/80 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
                >
                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                  Generate Repository Story
                </button>
              ) : (
-               <p className="text-xs text-gray-500 mt-2">Please log in to generate an AI narrative.</p>
+               <p className="text-xs text-[var(--color-text-tertiary)] mt-2">Please log in to generate an AI narrative.</p>
              )}
            </div>
         )}
@@ -289,30 +307,30 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
             
       {/* 2. Repository Overview */}
       <div className="flex-none p-6 border-b border-white/5">
-        <h3 className="text-lg font-bold text-white mb-4">Repository Overview</h3>
+        <h3 className="text-lg font-bold text-white tracking-tight mb-4">Repository Overview</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="bg-black/40 border border-white/5 rounded-lg p-4 flex flex-col justify-center shadow-inner">
-            <span className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider mb-1">Repo Age</span>
-            <span className="text-white font-bold text-xl">{journey.stats.repository_age_days} <span className="text-sm font-normal text-gray-400">days</span></span>
+          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
+            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Repo Age</span>
+            <span className="text-white font-bold text-2xl tracking-tight">{journey.stats.repository_age_days} <span className="text-sm font-normal text-[var(--color-text-tertiary)]">days</span></span>
           </div>
-          <div className="bg-black/40 border border-white/5 rounded-lg p-4 flex flex-col justify-center shadow-inner">
-            <span className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider mb-1">Total Commits</span>
-            <span className="text-white font-bold text-xl">{journey.stats.total_commits}</span>
+          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
+            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Total Commits</span>
+            <span className="text-white font-bold text-2xl tracking-tight">{journey.stats.total_commits.toLocaleString()}</span>
           </div>
-          <div className="bg-black/40 border border-white/5 rounded-lg p-4 flex flex-col justify-center shadow-inner">
-            <span className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider mb-1">Releases</span>
-            <span className="text-yellow-400 font-bold text-xl">{journey.stats.releases_count}</span>
+          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
+            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Releases</span>
+            <span className="text-yellow-400 font-bold text-2xl tracking-tight">{journey.stats.releases_count}</span>
           </div>
-          <div className="bg-black/40 border border-white/5 rounded-lg p-4 flex flex-col justify-center shadow-inner">
-            <span className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider mb-1">Contributors</span>
-            <span className="text-white font-bold text-xl">{journey.stats.contributors_count}</span>
+          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
+            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Contributors</span>
+            <span className="text-white font-bold text-2xl tracking-tight">{journey.stats.contributors_count}</span>
           </div>
-          <div className="bg-black/40 border border-white/5 rounded-lg p-4 flex flex-col justify-center shadow-inner">
-            <span className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider mb-1">Major Refactors</span>
-            <span className="text-purple-400 font-bold text-xl">{journey.stats.refactors_count}</span>
+          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
+            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Major Refactors</span>
+            <span className="text-purple-400 font-bold text-2xl tracking-tight">{journey.stats.refactors_count}</span>
           </div>
-          <div className="bg-black/40 border border-white/5 rounded-lg p-4 flex flex-col justify-center shadow-inner">
-            <span className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider mb-1">Largest Commit</span>
+          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col justify-center shadow-sm hover:bg-white/10 transition-colors">
+            <span className="text-[var(--color-text-tertiary)] text-[10px] font-bold uppercase tracking-wider mb-1">Largest Commit</span>
             <span className="text-blue-400 font-mono font-bold text-lg">{journey.stats.largest_commit_sha ? journey.stats.largest_commit_sha.substring(0, 7) : 'N/A'}</span>
           </div>
         </div>
@@ -326,19 +344,19 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
           {/* Filter / Search Bar */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
-              <svg className="absolute left-2.5 top-2 text-gray-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <svg className="absolute left-3 top-2.5 text-[var(--color-text-tertiary)]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input 
                 type="text" 
                 placeholder="Search timeline..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="bg-black/50 border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-sm text-white focus:outline-none focus:border-[var(--color-accent-primary)] w-48 transition-colors"
+                className="bg-white/5 border border-white/10 rounded-full pl-9 pr-4 py-1.5 text-sm text-white focus:outline-none focus:border-[var(--color-accent-primary)] focus:bg-white/10 w-48 transition-all shadow-sm"
               />
             </div>
             <select 
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value as any)}
-              className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-gray-300 focus:outline-none focus:border-[var(--color-accent-primary)]"
+              className="bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm text-[var(--color-text-secondary)] focus:outline-none focus:border-[var(--color-accent-primary)] focus:bg-white/10 transition-all shadow-sm cursor-pointer"
             >
               <option value="all">All Categories</option>
               <option value="release">Releases</option>
@@ -524,7 +542,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
 
         {/* Persistent Side Panel for Selected Milestone */}
         <div 
-          className={`absolute top-0 right-0 bottom-0 w-96 bg-[#0D0D0D] border-l border-white/10 shadow-[-10px_0_30px_rgba(0,0,0,0.8)] transform transition-transform duration-300 ease-out flex flex-col ${selectedMilestone ? 'translate-x-0' : 'translate-x-full'}`}
+          className={`absolute top-0 right-0 bottom-0 w-96 bg-black/60 backdrop-blur-2xl border-l border-white/10 shadow-[-20px_0_40px_rgba(0,0,0,0.5)] transform transition-transform duration-300 ease-out flex flex-col z-50 ${selectedMilestone ? 'translate-x-0' : 'translate-x-full'}`}
         >
           {selectedMilestone && (
             <>
@@ -566,17 +584,17 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
 
                 {/* Git Stats Grid */}
                 <div className="grid grid-cols-3 gap-2 mb-6">
-                   <div className="bg-black/50 border border-white/5 rounded-lg p-2 text-center">
-                     <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Files</div>
-                     <div className="text-white font-mono">{selectedMilestone.files_changed ?? '?'}</div>
+                   <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center shadow-sm">
+                     <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold">Files</div>
+                     <div className="text-white font-mono text-lg font-semibold">{selectedMilestone.files_changed ?? '?'}</div>
                    </div>
-                   <div className="bg-black/50 border border-white/5 rounded-lg p-2 text-center">
-                     <div className="text-[10px] text-green-500/70 uppercase tracking-wider mb-1">Adds</div>
-                     <div className="text-green-400 font-mono">+{selectedMilestone.insertions ?? '?'}</div>
+                   <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center shadow-sm">
+                     <div className="text-[10px] text-green-500/80 uppercase tracking-wider mb-1 font-bold">Adds</div>
+                     <div className="text-green-400 font-mono text-lg font-semibold">+{selectedMilestone.insertions ?? '?'}</div>
                    </div>
-                   <div className="bg-black/50 border border-white/5 rounded-lg p-2 text-center">
-                     <div className="text-[10px] text-red-500/70 uppercase tracking-wider mb-1">Dels</div>
-                     <div className="text-red-400 font-mono">-{selectedMilestone.deletions ?? '?'}</div>
+                   <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center shadow-sm">
+                     <div className="text-[10px] text-red-500/80 uppercase tracking-wider mb-1 font-bold">Dels</div>
+                     <div className="text-red-400 font-mono text-lg font-semibold">-{selectedMilestone.deletions ?? '?'}</div>
                    </div>
                 </div>
 
@@ -614,7 +632,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
         <h3 className="text-lg font-bold text-white mb-4">Major Milestones</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {journey.milestones.slice(0, 9).map(m => (
-            <div key={m.sha} onClick={() => setSelectedMilestone(m)} className="bg-black/40 border border-white/5 rounded-lg p-4 cursor-pointer hover:bg-white/5 transition-colors group flex flex-col gap-2">
+            <div key={m.sha} onClick={() => setSelectedMilestone(m)} className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-4 cursor-pointer hover:bg-white/10 hover:border-white/10 shadow-sm transition-all group flex flex-col gap-2">
                <div className="flex items-center justify-between">
                  <span 
                     className="text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded"
@@ -622,14 +640,14 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
                   >
                     {CATEGORY_LABELS[m.category]}
                  </span>
-                 <span className="text-[10px] text-gray-500 font-mono">{new Date(m.authored_at).toLocaleDateString()}</span>
+                 <span className="text-[10px] text-[var(--color-text-tertiary)] font-mono group-hover:text-[var(--color-text-secondary)] transition-colors">{new Date(m.authored_at).toLocaleDateString()}</span>
                </div>
-               <p className="text-sm text-gray-300 font-medium line-clamp-2 group-hover:text-white transition-colors">{m.message.split('\n')[0]}</p>
-               <div className="flex items-center gap-3 mt-auto pt-2 border-t border-white/5 text-[10px] text-gray-500">
-                 <span>+{m.insertions || 0}</span>
-                 <span>-{m.deletions || 0}</span>
+               <p className="text-sm text-[var(--color-text-secondary)] font-medium line-clamp-2 group-hover:text-white transition-colors">{m.message.split('\n')[0]}</p>
+               <div className="flex items-center gap-3 mt-auto pt-3 border-t border-white/5 text-[10px] text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-secondary)] transition-colors">
+                 <span className="font-mono">+{m.insertions || 0}</span>
+                 <span className="font-mono">-{m.deletions || 0}</span>
                  <span>{m.files_changed || 0} files</span>
-                 <span className="ml-auto flex items-center gap-1">
+                 <span className="ml-auto flex items-center gap-1 font-semibold">
                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                    {m.author_name}
                  </span>
@@ -644,50 +662,50 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
         <h3 className="text-lg font-bold text-white mb-4">Advanced Insights</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           
-          <div className="bg-[#111] border border-white/5 rounded-xl p-5 relative overflow-hidden group hover:border-[var(--color-accent-primary)]/50 transition-colors">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-bl-full -mr-4 -mt-4" />
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Health Score</h4>
+          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-5 relative overflow-hidden shadow-sm group hover:bg-white/10 hover:border-[var(--color-accent-primary)]/30 transition-all">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+            <h4 className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-3">Health Score</h4>
             <div className="flex items-end gap-2">
-              <span className={`text-4xl font-bold tracking-tighter ${journey.stats.repository_health_score > 75 ? 'text-green-400' : journey.stats.repository_health_score > 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+              <span className={`text-4xl font-bold tracking-tight ${journey.stats.repository_health_score > 75 ? 'text-green-400' : journey.stats.repository_health_score > 50 ? 'text-yellow-400' : 'text-red-400'}`}>
                 {journey.stats.repository_health_score}
               </span>
-              <span className="text-sm text-gray-500 font-medium mb-1">/ 100</span>
+              <span className="text-sm text-[var(--color-text-tertiary)] font-medium mb-1">/ 100</span>
             </div>
-            <p className="text-xs text-gray-500 mt-2">Based on dev velocity, refactors, and consistency.</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-2">Based on dev velocity, refactors, and consistency.</p>
           </div>
 
-          <div className="bg-[#111] border border-white/5 rounded-xl p-5 relative overflow-hidden group hover:border-[var(--color-accent-primary)]/50 transition-colors">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-bl-full -mr-4 -mt-4" />
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Dev Velocity</h4>
+          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-5 relative overflow-hidden shadow-sm group hover:bg-white/10 hover:border-purple-500/30 transition-all">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+            <h4 className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-3">Dev Velocity</h4>
             <div className="flex items-end gap-2">
-              <span className="text-4xl font-bold tracking-tighter text-white">
+              <span className="text-4xl font-bold tracking-tight text-white">
                 {journey.stats.development_velocity}
               </span>
-              <span className="text-sm text-gray-500 font-medium mb-1">commits/mo</span>
+              <span className="text-sm text-[var(--color-text-tertiary)] font-medium mb-1">commits/mo</span>
             </div>
-            <p className="text-xs text-gray-500 mt-2">Average pace of development over active months.</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-2">Average pace of development over active months.</p>
           </div>
 
-          <div className="bg-[#111] border border-white/5 rounded-xl p-5 relative overflow-hidden group hover:border-[var(--color-accent-primary)]/50 transition-colors">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-bl-full -mr-4 -mt-4" />
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Peak Activity</h4>
+          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-5 relative overflow-hidden shadow-sm group hover:bg-white/10 hover:border-orange-500/30 transition-all">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+            <h4 className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-3">Peak Activity</h4>
             <div className="flex flex-col gap-1">
-              <span className="text-xl font-bold tracking-tighter text-white">{journey.stats.most_active_month}</span>
-              <span className="text-sm text-gray-400">{journey.stats.most_active_year} was the most active year</span>
+              <span className="text-2xl font-bold tracking-tight text-white">{journey.stats.most_active_month}</span>
+              <span className="text-sm text-[var(--color-text-tertiary)]">{journey.stats.most_active_year} was the most active year</span>
             </div>
-            <p className="text-xs text-gray-500 mt-3">{journey.stats.most_active_month_count} commits during peak month.</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-3">{journey.stats.most_active_month_count} commits during peak month.</p>
           </div>
 
-          <div className="bg-[#111] border border-white/5 rounded-xl p-5 relative overflow-hidden group hover:border-[var(--color-accent-primary)]/50 transition-colors">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-bl-full -mr-4 -mt-4" />
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Commit Size</h4>
+          <div className="bg-white/5 backdrop-blur-md border border-white/5 rounded-xl p-5 relative overflow-hidden shadow-sm group hover:bg-white/10 hover:border-red-500/30 transition-all">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+            <h4 className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-3">Commit Size</h4>
             <div className="flex items-end gap-2">
-              <span className="text-4xl font-bold tracking-tighter text-white">
+              <span className="text-4xl font-bold tracking-tight text-white">
                 ~{journey.stats.average_commit_size}
               </span>
-              <span className="text-sm text-gray-500 font-medium mb-1">lines</span>
+              <span className="text-sm text-[var(--color-text-tertiary)] font-medium mb-1">lines</span>
             </div>
-            <p className="text-xs text-gray-500 mt-2">Longest inactive gap: {journey.stats.longest_inactive_period_days} days.</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-2">Longest inactive gap: {journey.stats.longest_inactive_period_days} days.</p>
           </div>
 
         </div>

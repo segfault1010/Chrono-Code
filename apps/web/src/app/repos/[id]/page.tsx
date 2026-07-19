@@ -462,118 +462,73 @@ export default function RepoPage() {
       {/* ================================================================= */}
       {/* Header — Repository name, progress, actions                       */}
       {/* ================================================================= */}
-      <header className="mb-10 sm:mb-12 border-b border-[var(--color-border)] pb-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-white to-[var(--color-text-secondary)] bg-clip-text text-transparent">
-              {repo.owner}/{repo.name}
+      <header className="mb-8 sticky top-0 z-40 bg-[var(--color-bg-primary)]/80 backdrop-blur-md border-b border-[var(--color-border)] py-4 -mx-4 px-4 sm:-mx-8 sm:px-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">
+              {repo.owner} / <span className="text-[var(--color-text-secondary)]">{repo.name}</span>
             </h1>
+            
+            {/* Status Pill */}
+            <div className="group relative flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm font-medium">
+              {isBackgroundIndexing && (
+                <div className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: getStatusColor(repo.status), borderTopColor: 'transparent' }} />
+              )}
+              {repo.status === "ready" && (
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getStatusColor(repo.status) }} />
+              )}
+              <span style={{ color: getStatusColor(repo.status) }}>
+                {getStatusLabel(repo.status)} {isBackgroundIndexing ? `${progressPercent}%` : ""}
+              </span>
+
+              {/* Hover Tooltip for details */}
+              <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                <div className="flex justify-between mb-1">
+                  <span className="text-xs text-[var(--color-text-tertiary)]">Indexed</span>
+                  <span className="text-xs font-mono text-[var(--color-text-primary)]">{repo.indexed_commits.toLocaleString()} / {repo.total_commits.toLocaleString()}</span>
+                </div>
+                <div className="w-full h-1.5 bg-[var(--color-bg-primary)] rounded-full overflow-hidden mb-2">
+                  <div className="h-full bg-gradient-to-r from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)]" style={{ width: `${progressPercent}%` }} />
+                </div>
+                <div className="text-[10px] text-[var(--color-text-tertiary)] text-right">
+                  Last sync: {timeAgo(repo.last_indexed_at)}
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Button 
               variant="secondary"
               onClick={handleSync}
               isLoading={isSyncing}
               disabled={isInitialIndexing}
-              className="shrink-0 flex items-center gap-2 shadow-sm hover:shadow-md transition-all border border-white/10"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-lg bg-transparent border-[var(--color-border)] hover:bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] transition-all h-9 px-4 text-sm"
             >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSyncing ? "animate-spin" : ""}>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSyncing ? "animate-spin" : ""}>
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.44l5.46-5.46"/>
               </svg>
-              {isSyncing ? "Syncing…" : "Sync Latest Commits"}
+              {isSyncing ? "Syncing" : "Sync"}
             </Button>
             
             <Button 
               variant={isSaved ? "secondary" : "primary"} 
               onClick={handleSaveToggle}
               isLoading={isSaving}
-              className="shrink-0 flex items-center gap-2 shadow-md hover:shadow-lg transition-all border border-white/10"
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-lg transition-all h-9 px-4 text-sm ${isSaved ? "bg-transparent border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-elevated)]" : "bg-[var(--color-accent-primary)] text-white hover:opacity-90"}`}
             >
               {isSaved ? (
                 <>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
                   Saved
                 </>
               ) : (
                 <>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-                  Save to Dashboard
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  Save
                 </>
               )}
             </Button>
-          </div>
-        </div>
-
-        {/* =============================================================== */}
-        {/* Indexing Progress Panel                                          */}
-        {/* =============================================================== */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-sm">
-          {/* Total Commits */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[var(--color-text-tertiary)] text-xs font-medium uppercase tracking-wider">Total Commits</span>
-            <span className="text-[var(--color-text-primary)] font-bold text-lg tabular-nums">
-              {repo.total_commits.toLocaleString()}
-            </span>
-          </div>
-
-          {/* Indexed */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[var(--color-text-tertiary)] text-xs font-medium uppercase tracking-wider">Indexed</span>
-            <span className="text-[var(--color-text-primary)] font-bold text-lg tabular-nums">
-              {repo.indexed_commits.toLocaleString()}
-              <span className="text-[var(--color-text-tertiary)] font-normal text-sm ml-1">
-                / {repo.total_commits.toLocaleString()}
-              </span>
-            </span>
-          </div>
-
-          {/* Progress */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[var(--color-text-tertiary)] text-xs font-medium uppercase tracking-wider">Progress</span>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-2 rounded-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] overflow-hidden">
-                <div 
-                  className="h-full rounded-full transition-all duration-700 ease-out"
-                  style={{ 
-                    width: `${progressPercent}%`,
-                    background: progressPercent >= 100 
-                      ? 'linear-gradient(90deg, #22c55e, #16a34a)' 
-                      : 'linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary, #a855f7))',
-                    boxShadow: progressPercent < 100 
-                      ? '0 0 8px var(--color-accent-primary)' 
-                      : '0 0 8px #22c55e'
-                  }}
-                />
-              </div>
-              <span className="text-[var(--color-text-secondary)] font-bold text-sm tabular-nums min-w-[3rem] text-right">
-                {progressPercent}%
-              </span>
-            </div>
-          </div>
-
-          {/* Status */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[var(--color-text-tertiary)] text-xs font-medium uppercase tracking-wider">Status</span>
-            <span className="flex items-center gap-2 font-semibold" style={{ color: getStatusColor(repo.status) }}>
-              {isBackgroundIndexing && (
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: getStatusColor(repo.status) }}></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ backgroundColor: getStatusColor(repo.status) }}></span>
-                </span>
-              )}
-              {repo.status === "ready" && (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
-              )}
-              {getStatusLabel(repo.status)}
-            </span>
-          </div>
-
-          {/* Last Sync */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[var(--color-text-tertiary)] text-xs font-medium uppercase tracking-wider">Last Sync</span>
-            <span className="text-[var(--color-text-secondary)] font-medium">
-              {timeAgo(repo.last_indexed_at)}
-            </span>
           </div>
         </div>
       </header>
@@ -581,61 +536,57 @@ export default function RepoPage() {
       {/* ================================================================= */}
       {/* Tab Navigation                                                     */}
       {/* ================================================================= */}
-      <div className="flex gap-6 border-b border-[var(--color-border)] mb-8">
-        <button 
-          onClick={() => setActiveTab("timeline")}
-          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "timeline" ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"}`}
-        >
-          Commit Timeline
-          {activeTab === "timeline" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
-        </button>
-        <button 
-          onClick={() => setActiveTab("analytics")}
-          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "analytics" ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"}`}
-        >
-          Contributor Analytics
-          {activeTab === "analytics" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
-        </button>
-        <button 
-          onClick={() => {
-            if (!user) {
-              window.location.href = "/login";
-              return;
-            }
-            setActiveTab("releases");
-          }}
-          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "releases" ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"}`}
-        >
-          Release Notes
-          {activeTab === "releases" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
-        </button>
-        <button 
-          onClick={() => {
-            if (!user) {
-              window.location.href = "/login";
-              return;
-            }
-            setActiveTab("risk");
-          }}
-          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "risk" ? "text-orange-500" : "text-[var(--color-text-tertiary)] hover:text-orange-400"}`}
-        >
-          Risk Analysis
-          {activeTab === "risk" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-[0_0_8px_theme(colors.orange.500)]" />}
-        </button>
-        <button 
-          onClick={() => setActiveTab("evolution")}
-          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "evolution" ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"}`}
-        >
-          Code Evolution
-          {activeTab === "evolution" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
-        </button>
-        <button 
-          onClick={() => setActiveTab("functions")}
-          className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === "functions" ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"}`}
-        >
-          Function History
-          {activeTab === "functions" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)]" />}
-        </button>
+      <div className="mb-8 overflow-x-auto scrollbar-none pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="inline-flex items-center p-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl whitespace-nowrap min-w-max">
+          <button 
+            onClick={() => setActiveTab("timeline")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "timeline" ? "bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm border border-[var(--color-border)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-white/5 border border-transparent"}`}
+          >
+            Commit Timeline
+          </button>
+          <button 
+            onClick={() => setActiveTab("analytics")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "analytics" ? "bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm border border-[var(--color-border)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-white/5 border border-transparent"}`}
+          >
+            Contributor Analytics
+          </button>
+          <button 
+            onClick={() => {
+              if (!user) {
+                window.location.href = "/login";
+                return;
+              }
+              setActiveTab("releases");
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "releases" ? "bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm border border-[var(--color-border)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-white/5 border border-transparent"}`}
+          >
+            Release Notes
+          </button>
+          <button 
+            onClick={() => {
+              if (!user) {
+                window.location.href = "/login";
+                return;
+              }
+              setActiveTab("risk");
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "risk" ? "bg-orange-500/10 text-orange-500 shadow-sm border border-orange-500/20" : "text-[var(--color-text-tertiary)] hover:text-orange-400 hover:bg-white/5 border border-transparent"}`}
+          >
+            Risk Analysis
+          </button>
+          <button 
+            onClick={() => setActiveTab("evolution")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "evolution" ? "bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm border border-[var(--color-border)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-white/5 border border-transparent"}`}
+          >
+            Code Evolution
+          </button>
+          <button 
+            onClick={() => setActiveTab("functions")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "functions" ? "bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm border border-[var(--color-border)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-white/5 border border-transparent"}`}
+          >
+            Function History
+          </button>
+        </div>
       </div>
 
       {/* ================================================================= */}
@@ -666,71 +617,75 @@ export default function RepoPage() {
         <div className="animate-fade-in">
           {/* Search bar */}
           <div className="mb-8">
-        <form onSubmit={handleSearch} className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--color-text-tertiary)]">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <form onSubmit={handleSearch} className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[var(--color-text-tertiary)] group-focus-within:text-[var(--color-accent-primary)] transition-colors">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+              <input
+                type="text"
+                className="w-full bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-primary)] rounded-full py-3.5 pl-12 pr-12 focus:outline-none focus:border-[var(--color-accent-primary)] focus:ring-1 focus:ring-[var(--color-accent-primary)] transition-all placeholder:text-[var(--color-text-tertiary)] shadow-sm"
+                placeholder="Search commits by meaning (e.g., 'when did we add auth?')"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button type="button" onClick={clearSearch} className="absolute inset-y-0 right-0 pr-4 flex items-center text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors animate-fade-in">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              )}
+            </form>
+            {isSearching && (
+              <div className="text-xs mt-3 text-[var(--color-text-secondary)] animate-pulse pl-4 flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full border-2 border-[var(--color-accent-primary)] border-t-transparent animate-spin" />
+                Searching repository history...
+              </div>
+            )}
+            {searchResults && !isSearching && (
+              <div className="flex items-center justify-between mt-3 pl-4 animate-fade-in">
+                 <p className="text-xs text-[var(--color-accent-primary)] font-medium">Found {searchResults.length} matching commits</p>
+                 <button onClick={clearSearch} className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Clear Search</button>
+              </div>
+            )}
           </div>
-          <input
-            type="text"
-            className="w-full bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-primary)] rounded-full py-3 pl-10 pr-12 focus:outline-none focus:border-[var(--color-accent-primary)] focus:ring-1 focus:ring-[var(--color-accent-primary)] transition-all placeholder:text-[var(--color-text-tertiary)]"
-            placeholder="Search commits by meaning (e.g., 'when did we add auth?')"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button type="button" onClick={clearSearch} className="absolute inset-y-0 right-0 pr-4 flex items-center text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          )}
-        </form>
-        {isSearching && (
-          <p className="text-sm mt-3 text-[var(--color-text-secondary)] animate-pulse pl-4">Searching repository history...</p>
-        )}
-        {searchResults && !isSearching && (
-          <div className="flex items-center justify-between mt-3 pl-4 animate-fade-in">
-             <p className="text-sm text-[var(--color-accent-primary)] font-medium">Found {searchResults.length} matching commits</p>
-             <button onClick={clearSearch} className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] underline underline-offset-2 transition-colors">Clear Search</button>
-          </div>
-        )}
-      </div>
 
       {/* Commit Timeline */}
-      <div className="flex flex-col gap-5 relative">
+      <div className="flex flex-col gap-6 relative">
         {/* Timeline line behind cards */}
-        <div className="absolute left-[27px] sm:left-[35px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-[var(--color-accent-primary)]/20 via-[var(--color-border)] to-transparent -z-10" />
+        <div className="absolute left-[15px] sm:left-[31px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-[var(--color-accent-primary)] via-[var(--color-border)] to-transparent opacity-50 -z-10" />
 
-        {(searchResults || commits).map((commit) => (
-          <div key={commit.sha} className="flex gap-4 sm:gap-6 group">
+        {(searchResults || commits).map((commit, index) => (
+          <div key={commit.sha} className="flex gap-4 sm:gap-6 group animate-fade-in" style={{ animationDelay: `${Math.min(index * 50, 500)}ms`, animationFillMode: 'both' }}>
             {/* Timeline dot */}
-            <div className="mt-6 flex-shrink-0 relative">
-              <div className="w-4 h-4 rounded-full bg-[var(--color-bg-primary)] border-2 border-[var(--color-accent-primary)] shadow-[0_0_10px_var(--color-accent-primary)] z-10 relative group-hover:scale-125 transition-transform" />
+            <div className="mt-6 w-8 sm:w-16 flex-shrink-0 flex justify-center relative">
+              <div className="w-3 h-3 rounded-full bg-[var(--color-bg-primary)] border-2 border-[var(--color-accent-primary)] shadow-[0_0_8px_var(--color-accent-primary)] z-10 relative group-hover:scale-150 transition-transform duration-300" />
             </div>
 
-            <Card className="flex-1 p-5 sm:p-6 transition-all duration-300 hover:shadow-xl hover:border-[var(--color-accent-primary)]/30 bg-[var(--color-bg-elevated)]/60 backdrop-blur-sm">
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <Card className="flex-1 p-4 sm:p-5 transition-all duration-300 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 shadow-sm backdrop-blur-md">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold mb-3 text-[var(--color-text-primary)] leading-snug break-words">
+                  <h3 className="text-base sm:text-lg font-semibold mb-2 text-[var(--color-text-primary)] leading-snug break-words">
                     {commit.message.split("\n")[0]}
                   </h3>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[var(--color-text-tertiary)] font-medium">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs sm:text-sm text-[var(--color-text-tertiary)] font-medium">
                     <span className="flex items-center gap-1.5 text-[var(--color-text-secondary)]">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       {commit.author_name}
                     </span>
                     <span className="hidden sm:inline">•</span>
-                    <span className="flex items-center gap-1.5">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                      {new Date(commit.authored_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <span className="hidden sm:inline">•</span>
-                    <span className="font-mono text-xs bg-[var(--color-bg-primary)] px-2 py-1 rounded-md border border-[var(--color-border)]">
-                      {commit.sha.substring(0, 7)}
-                    </span>
-                    {commit.similarity !== undefined && commit.similarity < 1 && (
-                      <span className="text-xs font-semibold bg-[var(--color-accent-primary)]/10 text-[var(--color-accent-primary)] px-2 py-1 rounded-md border border-[var(--color-accent-primary)]/30">
-                        Match: {(commit.similarity * 100).toFixed(1)}%
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <span className="flex items-center gap-1.5">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        {new Date(commit.authored_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
-                    )}
+                      <span className="font-mono text-[10px] sm:text-xs bg-white/5 px-1.5 py-0.5 rounded-md border border-white/10 text-[var(--color-text-secondary)]">
+                        {commit.sha.substring(0, 7)}
+                      </span>
+                      {commit.similarity !== undefined && commit.similarity < 1 && (
+                        <span className="text-[10px] sm:text-xs font-semibold bg-[var(--color-accent-primary)]/10 text-[var(--color-accent-primary)] px-1.5 py-0.5 rounded-md border border-[var(--color-accent-primary)]/30">
+                          Match: {(commit.similarity * 100).toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {user && (
@@ -738,34 +693,43 @@ export default function RepoPage() {
                     variant={explanations[commit.sha] ? "secondary" : "primary"}
                     onClick={() => handleExplain(commit.sha)}
                     isLoading={explanations[commit.sha]?.isExplaining}
-                    className="w-full sm:w-auto shrink-0 shadow-sm"
+                    className={`w-full sm:w-auto shrink-0 transition-all h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm rounded-lg ${explanations[commit.sha] ? "bg-white/5 border-white/10 hover:bg-white/10 text-[var(--color-text-primary)]" : "bg-[var(--color-accent-primary)] text-white hover:opacity-90 border-transparent"}`}
                   >
-                    {explanations[commit.sha] ? "Close Insights" : "AI Explain"}
+                    {explanations[commit.sha] ? "Close Insights" : (
+                      <span className="flex items-center gap-1.5">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                        AI Explain
+                      </span>
+                    )}
                   </Button>
                 )}
               </div>
 
               {/* Explanation View */}
-              {explanations[commit.sha] && (
-                <div className="mt-5 pt-5 border-t border-[var(--color-border)] animate-fade-in">
-                  {explanations[commit.sha].error ? (
-                    <div className="flex items-center gap-2 text-[var(--color-error)] p-3 bg-[var(--color-error-bg)] rounded-lg">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      <p>{explanations[commit.sha].error}</p>
-                    </div>
-                  ) : (
-                    <div className="prose prose-invert max-w-none text-[var(--color-text-secondary)] leading-relaxed text-[15px]">
-                      <div dangerouslySetInnerHTML={{ __html: explanations[commit.sha].explanation.replace(/\n/g, "<br/>") }} />
-                      <div className="mt-4 flex justify-end">
-                        <span className="text-xs font-mono text-[var(--color-text-tertiary)] flex items-center gap-1.5 opacity-70">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                          {explanations[commit.sha].model_id}
-                        </span>
+              <div 
+                className={`grid transition-all duration-300 ease-in-out ${explanations[commit.sha] ? "grid-rows-[1fr] mt-4 opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+              >
+                <div className="overflow-hidden">
+                  <div className="pt-4 border-t border-white/10">
+                    {explanations[commit.sha]?.error ? (
+                      <div className="flex items-center gap-2 text-[var(--color-error)] p-3 bg-[var(--color-error-bg)] rounded-lg text-sm">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <p>{explanations[commit.sha].error}</p>
                       </div>
-                    </div>
-                  )}
+                    ) : explanations[commit.sha] ? (
+                      <div className="prose prose-sm sm:prose-base prose-invert max-w-none text-[var(--color-text-secondary)] leading-relaxed">
+                        <div dangerouslySetInnerHTML={{ __html: explanations[commit.sha].explanation.replace(/\n/g, "<br/>") }} />
+                        <div className="mt-4 flex justify-end">
+                          <span className="text-[10px] sm:text-xs font-mono text-[var(--color-text-tertiary)] flex items-center gap-1.5 opacity-70">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            {explanations[commit.sha].model_id}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              )}
+              </div>
             </Card>
           </div>
         ))}

@@ -83,38 +83,38 @@ export function RiskAnalysis({ repoId }: RiskAnalysisProps) {
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
-      <div className="bg-[var(--color-bg-elevated)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm mb-6 relative overflow-hidden">
-        {/* Subtle orange warning gradient for risk analysis */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-
-        <div className="flex items-center gap-3 mb-4">
+      <div className="bg-white/5 backdrop-blur-md p-6 lg:p-8 rounded-2xl border border-white/5 shadow-lg mb-6 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-orange-500/20 via-red-500/10 to-transparent rounded-full blur-[100px] -mr-48 -mt-48 pointer-events-none transition-opacity duration-700 opacity-50 group-hover:opacity-100" />
+        
+        <div className="flex items-center gap-3 mb-4 relative z-10">
           <svg className="text-orange-500" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">Risk Analysis Scanner</h2>
+          <h2 className="text-xl font-bold text-white tracking-tight">Risk Analysis Scanner</h2>
         </div>
-        <p className="text-[var(--color-text-secondary)] mb-6 text-sm max-w-2xl">
+        <p className="text-[var(--color-text-secondary)] mb-6 text-sm max-w-2xl relative z-10">
           Deploy an AI Security & Architecture Auditor to scan your recent commit history for potential breaking changes, sensitive dependency updates, or major architectural shifts.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 items-end relative z-10">
-          <div className="flex-1 w-full">
-            <label className="block text-sm font-medium text-[var(--color-text-tertiary)] mb-2">
+          <div className="flex-1 w-full relative">
+            <label className="block text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2 ml-2">
               Scan Range
             </label>
+            <svg className="absolute right-4 top-[38px] text-[var(--color-text-tertiary)] pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
             <select 
               value={range}
               onChange={(e) => setRange(e.target.value)}
               disabled={isGenerating}
-              className="w-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-500 transition-colors appearance-none"
+              className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-3 text-sm text-white focus:outline-none focus:border-orange-500 focus:bg-white/10 transition-all appearance-none cursor-pointer shadow-sm"
             >
-              <option value="last_50">Last 50 Commits</option>
-              <option value="last_7_days">Last 7 Days</option>
-              <option value="last_30_days">Last 30 Days</option>
+              <option value="last_50" className="bg-[#111]">Last 50 Commits</option>
+              <option value="last_7_days" className="bg-[#111]">Last 7 Days</option>
+              <option value="last_30_days" className="bg-[#111]">Last 30 Days</option>
             </select>
           </div>
           <Button 
             onClick={handleGenerate} 
             isLoading={isGenerating}
-            className="w-full sm:w-auto px-8 bg-orange-600 hover:bg-orange-700 text-white border-transparent"
+            className="w-full sm:w-auto h-[50px] px-8 rounded-full font-semibold bg-orange-600 hover:bg-orange-500 text-white shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:shadow-[0_0_25px_rgba(234,88,12,0.5)] transition-all border-none"
           >
             {isGenerating ? "Scanning..." : "Run Risk Scan"}
           </Button>
@@ -129,14 +129,14 @@ export function RiskAnalysis({ repoId }: RiskAnalysisProps) {
       )}
 
       {(markdown || isGenerating) && !error && (
-        <div className="bg-[var(--color-bg-elevated)] p-6 sm:p-8 rounded-2xl border border-orange-500/20 shadow-sm relative overflow-hidden">
+        <div className="bg-black/40 backdrop-blur-md p-6 sm:p-8 rounded-2xl border border-orange-500/30 shadow-inner relative overflow-hidden">
           <div 
-            className="prose prose-invert max-w-none text-[var(--color-text-secondary)] prose-headings:text-[var(--color-text-primary)] prose-a:text-orange-400 prose-li:my-1 prose-strong:text-orange-100"
+            className="prose prose-invert max-w-none text-[var(--color-text-secondary)] prose-headings:text-white prose-headings:tracking-tight prose-a:text-orange-400 prose-li:my-1 prose-strong:text-orange-100 prose-pre:bg-white/5 prose-pre:border prose-pre:border-orange-500/20"
             dangerouslySetInnerHTML={{ __html: parsedHtml }}
           />
           {isGenerating && (
-             <div className="mt-6 flex items-center gap-3 text-orange-400 animate-pulse text-sm font-medium">
-               <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+             <div className="mt-6 flex items-center gap-3 text-orange-500 animate-pulse text-sm font-medium">
+               <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                Auditing commits...
              </div>
           )}
