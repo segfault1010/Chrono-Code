@@ -385,12 +385,12 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
         </div>
 
         {/* MAIN LAYOUT: Canvas (Left/Full) & Side Panel (Right) */}
-        <div className="flex-1 flex overflow-hidden relative h-[400px] border border-white/5 rounded-xl bg-black">
+        <div className="flex-1 flex relative min-h-[400px] border border-white/5 rounded-xl bg-black overflow-hidden">
         
         {/* Interactive Timeline Canvas */}
         <div 
           ref={containerRef}
-          className={`flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar relative transition-all duration-300 ${selectedMilestone ? 'mr-96' : ''}`}
+          className={`flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar relative transition-all duration-300`}
         >
           <div 
             className="absolute top-0 bottom-0 left-0 right-0 pointer-events-none"
@@ -548,7 +548,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
 
         {/* Persistent Side Panel for Selected Milestone */}
         <div 
-          className={`absolute top-0 right-0 bottom-0 w-96 bg-black/60 backdrop-blur-2xl border-l border-white/10 shadow-[-20px_0_40px_rgba(0,0,0,0.5)] transform transition-transform duration-300 ease-out flex flex-col z-50 ${selectedMilestone ? 'translate-x-0' : 'translate-x-full'}`}
+          className={`flex-shrink-0 bg-[#0a0a0a] border-l border-white/10 shadow-[-20px_0_40px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out flex flex-col z-50 ${selectedMilestone ? 'w-96 opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}
         >
           {selectedMilestone && (
             <>
@@ -572,7 +572,7 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
               </div>
               
               {/* Panel Content (Scrollable) */}
-              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              <div className="flex-1 p-6">
                 <h3 className="text-xl font-bold text-white leading-tight mb-4">
                    {selectedMilestone.message.split('\n')[0]}
                 </h3>
@@ -607,8 +607,8 @@ export function CodeEvolution({ repo, onJumpToTimeline, isIndexing, user }: Code
                 {/* Full Message */}
                 <div className="mb-6">
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Commit Message</h4>
-                  <div className="bg-black/40 border border-white/5 rounded-xl p-4">
-                    <p className="text-sm text-gray-300 whitespace-pre-wrap font-mono leading-relaxed max-h-64 overflow-y-auto custom-scrollbar">
+                  <div className="bg-black/30 rounded-xl p-4 border border-white/5 shadow-inner">
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
                       {selectedMilestone.message}
                     </p>
                   </div>

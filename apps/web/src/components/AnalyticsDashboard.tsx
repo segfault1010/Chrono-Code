@@ -242,9 +242,9 @@ export function AnalyticsDashboard({ repoId, isIndexing }: AnalyticsDashboardPro
         </Card>
 
         {/* Top Contributors - Clean UI */}
-        <Card className="p-6 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-lg hover:shadow-[0_15px_40px_rgba(0,0,0,0.3)] transition-all duration-500 flex flex-col h-[350px]">
+        <Card className="p-6 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-lg hover:shadow-[0_15px_40px_rgba(0,0,0,0.3)] transition-all duration-500 flex flex-col">
           <h3 className="text-lg font-bold mb-6 text-white tracking-tight">Key Contributors</h3>
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+          <div className="space-y-3">
             {data.topContributors.length > 0 ? (
               data.topContributors.map((contrib: any, index: number) => {
                 const percentage = totalCommits > 0 ? Math.round((parseInt(contrib.commit_count) / totalCommits) * 100) : 0;
