@@ -38,6 +38,7 @@ export interface Repository {
   created_at: string; // ISO-8601
   updated_at: string; // ISO-8601
   last_indexed_at: string | null; // ISO-8601
+  pipeline_state?: any; // JSONB PipelineState
 }
 
 // ---------------------------------------------------------------------------

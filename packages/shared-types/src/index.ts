@@ -22,6 +22,14 @@ export type {
   RepositoryComparison,
 } from "./models";
 
+export type {
+  PipelineStageId,
+  PipelineStageConfig,
+  PipelineState,
+} from "./pipeline-config";
+
+export { PIPELINE_GRAPH } from "./pipeline-config";
+
 // API contracts
 export type {
   CreateRepoRequest,

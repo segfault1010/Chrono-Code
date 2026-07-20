@@ -17,6 +17,7 @@ import { userRoutes } from "./routes/user-routes";
 import { analyticsRoutes } from "./routes/analytics-routes";
 import { releaseRoutes } from "./routes/release-routes";
 import { riskRoutes } from "./routes/risk-routes";
+import { githubMetaRoutes } from "./routes/github-meta-route";
 import { supabase } from "./lib/db";
 import { resumeIndexingJob } from "./jobs/index-repo-job";
 
@@ -89,6 +90,7 @@ try {
   });
 
   app.use("/api/repos", repoRoutes);
+  app.use("/api/repos", githubMetaRoutes);
   app.use("/api/commits", commitRoutes);
   app.use("/api/analytics", analyticsRoutes);
   app.use("/api/releases", releaseRoutes);

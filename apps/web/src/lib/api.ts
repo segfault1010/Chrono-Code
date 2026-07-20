@@ -4,6 +4,7 @@ import type {
   GetCommitsResponse,
   RepositoryJourney,
   JourneyInsights,
+  PipelineState,
 } from "@chronocode/shared-types";
 import { createClient } from "./supabase/client";
 
@@ -91,6 +92,7 @@ export const api = {
       body: JSON.stringify({ url }),
     }),
     get: (id: string) => fetchApi<Repository>(`/repos/${id}`),
+    getGithubMeta: (id: string) => fetchApi<any>(`/repos/${id}/github-meta`),
     getCommits: (id: string, page = 1, limit = 50) => 
       fetchApi<GetCommitsResponse>(`/repos/${id}/commits?page=${page}&limit=${limit}`),
     getEvolution: (id: string) => 
@@ -126,6 +128,27 @@ export const api = {
         headers["Authorization"] = `Bearer ${session.access_token}`;
       }
       return fetch(`${API_BASE_URL}/risk/${id}/risk-analysis?range=${range}`, { headers });
+    },
+    streamJourneyInsights: async (id: string, forceRefresh = false, signal?: AbortSignal) => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+      return fetch(`${API_BASE_URL}/repos/${id}/journey/insights/stream${forceRefresh ? '?refresh=true' : ''}`, { headers, signal });
+    },
+    getPipelineProgress: async (id: string): Promise<PipelineState> => {
+      return fetchApi<PipelineState>(`/repos/${id}/progress`);
+    },
+    getHealth: async (id: string): Promise<any> => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+      return fetch(`${API_BASE_URL}/repos/${id}/health`, { headers });
     },
   },
   user: {

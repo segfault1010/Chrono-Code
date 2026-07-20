@@ -238,7 +238,6 @@ export async function runAsyncVerification(repoId: string, targetDir: string, gi
       await supabase
         .from("repositories")
         .update({ 
-          status: "ready", 
           verification_status: "passed",
           verification_reason: null,
           error_message: null 
@@ -249,7 +248,6 @@ export async function runAsyncVerification(repoId: string, targetDir: string, gi
       await supabase
         .from("repositories")
         .update({ 
-          status: "ready", // KEEP REPO USABLE
           verification_status: "failed",
           verification_reason: verification.reason,
           error_message: null 
@@ -275,7 +273,6 @@ export async function runAsyncVerification(repoId: string, targetDir: string, gi
     await supabase
       .from("repositories")
       .update({ 
-        status: "ready",
         verification_status: "failed",
         verification_reason: `Fatal error: ${err instanceof Error ? err.message : String(err)}` 
       })

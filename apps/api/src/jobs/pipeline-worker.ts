@@ -27,7 +27,7 @@ export function startPipelineWorker() {
       const { data: repo, error: fetchErr } = await supabase
         .from("repositories")
         .select("id, github_url, status")
-        .in("status", ["queued", "analytics", "journey"])
+        .in("status", ["queued", "analytics", "journey", "ai_generation"])
         .order("updated_at", { ascending: true })
         .limit(1)
         .maybeSingle();
@@ -65,7 +65,7 @@ async function checkAnalyticsDone(repoId: string, types: string[]): Promise<bool
     return false;
   }
   
-  return data.every(a => a.status === "completed" || a.status === "error");
+  return data.every(a => a.status === "completed" || a.status === "ready" || a.status === "error");
 }
 
 async function getLatestSha(repoId: string) {
@@ -76,6 +76,14 @@ async function getLatestSha(repoId: string) {
 async function runPipelineSlice(repoId: string, url: string, status: string) {
   const tPipelineStart = performance.now();
   
+  let runId: string | null = null;
+  const fetchRunId = async () => {
+    if (runId) return runId;
+    const { data } = await supabase.from("repository_pipeline_runs").select("id").eq("repo_id", repoId).eq("status", "in_progress").maybeSingle();
+    runId = data?.id || null;
+    return runId;
+  };
+
   const updateStatus = async (newStatus: string, error_message: string | null = null, extra: any = {}) => {
     console.log(`[pipeline-worker] Status -> ${newStatus}`);
     const { data, error } = await supabase.from("repositories").update({ 
@@ -88,6 +96,14 @@ async function runPipelineSlice(repoId: string, url: string, status: string) {
     if (error) {
       console.error(`[pipeline-worker] FATAL DB ERROR: Failed to transition repo ${repoId} to state ${newStatus}:`, error);
       throw new Error(`Database error on status update to ${newStatus}: ${error.message}`);
+    }
+
+    try {
+      const { computePipelineState } = require("../services/pipeline-state-service");
+      const commitsProgress = data && data[0] && data[0].total_commits > 0 ? (data[0].indexed_commits / data[0].total_commits) * 100 : 0;
+      await computePipelineState(repoId, newStatus, commitsProgress, data?.[0]?.total_commits || 0);
+    } catch (err) {
+      console.error(`[pipeline-worker] Failed to compute pipeline state:`, err);
     }
   };
 
@@ -108,20 +124,25 @@ async function runPipelineSlice(repoId: string, url: string, status: string) {
       const runId = run?.id;
 
       // Stage 1: cloning
+      console.time(`[Pipeline:${repoId}] Clone Stage`);
       await updateStatus("cloning");
       const tCloneStart = performance.now();
       const targetDir = await cloneRepo(url);
       const durationClone = Math.round(performance.now() - tCloneStart);
+      console.timeEnd(`[Pipeline:${repoId}] Clone Stage`);
 
       // Stage 2: fetching_commits
+      console.time(`[Pipeline:${repoId}] Fetch Meta Stage`);
       await updateStatus("fetching_commits");
       const [totalCommits, defaultBranch] = await Promise.all([
         fetchGithubCommitCount(url).catch(e => 0),
         getDefaultBranch(targetDir)
       ]);
       await supabase.from("repositories").update({ total_commits: totalCommits, default_branch: defaultBranch }).eq("id", repoId);
+      console.timeEnd(`[Pipeline:${repoId}] Fetch Meta Stage`);
 
       // Stage 3: indexing (store commits)
+      console.time(`[Pipeline:${repoId}] Indexing Stage`);
       await updateStatus("indexing");
       const tIndexStart = performance.now();
       const { latestSha } = await synchronizeCommits(repoId, targetDir, async (insertedCount, currentLatestSha) => {
@@ -137,8 +158,10 @@ async function runPipelineSlice(repoId: string, url: string, status: string) {
         });
       });
       const durationIndex = Math.round(performance.now() - tIndexStart);
+      console.timeEnd(`[Pipeline:${repoId}] Indexing Stage`);
 
       // Stage 4: verifying
+      console.time(`[Pipeline:${repoId}] Verifying Stage`);
       await updateStatus("verifying");
       const { count: finalCount } = await supabase.from("commits").select("*", { count: "exact", head: true }).eq("repo_id", repoId);
       const actualCount = finalCount || 0;
@@ -152,6 +175,7 @@ async function runPipelineSlice(repoId: string, url: string, status: string) {
       
       const { runAsyncVerification } = require("../services/sync-engine");
       await runAsyncVerification(repoId, targetDir, totalCommits, runId, tPipelineStart).catch(() => {});
+      console.timeEnd(`[Pipeline:${repoId}] Verifying Stage`);
 
       if (runId) {
          await supabase.from("repository_pipeline_runs").update({
@@ -160,43 +184,60 @@ async function runPipelineSlice(repoId: string, url: string, status: string) {
          }).eq("id", runId);
       }
 
-      // Stage 5: queue analytics and transition state
+      // Stage 5: queue analytics and journey in parallel
+      console.time(`[Pipeline:${repoId}] Queue Analytics Stage`);
       const shaToUse = latestSha || "unknown";
       await updateStatus("analytics");
-      await queueAnalyticsGeneration(repoId, ["contributors", "activity", "evolution"], shaToUse);
+      await queueAnalyticsGeneration(repoId, ["contributors", "activity", "evolution", "journey"], shaToUse);
+      console.timeEnd(`[Pipeline:${repoId}] Queue Analytics Stage`);
       console.log(`[pipeline-worker] Slice 1 complete for ${repoId}. Yielding.`);
       return;
     }
 
     if (status === "analytics") {
-      const isDone = await checkAnalyticsDone(repoId, ["contributors", "activity", "evolution"]);
+      const isDone = await checkAnalyticsDone(repoId, ["contributors", "activity", "evolution", "journey"]);
       if (!isDone) {
         // Not done yet, just touch updated_at to push to back of queue
         await supabase.from("repositories").update({ updated_at: new Date().toISOString() }).eq("id", repoId);
         return;
       }
 
-      console.log(`[pipeline-worker] Analytics complete for ${repoId}. Transitioning to journey.`);
-      // Stage 6 & 7: ai_generation -> journey
+      console.log(`[pipeline-worker] Analytics & Journey complete for ${repoId}. Starting AI Generation.`);
       await updateStatus("ai_generation");
-      await updateStatus("journey");
       
-      const shaToUse = await getLatestSha(repoId);
-      await queueAnalyticsGeneration(repoId, ["journey"], shaToUse);
-      console.log(`[pipeline-worker] Slice 2 complete for ${repoId}. Yielding.`);
+      // Proactively trigger Repository Story (Insights)
+      try {
+        const { getOrGenerateJourneyInsights } = require("../services/insights-service");
+        const { getCachedAnalytics } = require("../services/analytics-pipeline");
+        const journey = await getCachedAnalytics(repoId, "journey");
+        if (journey) {
+          await getOrGenerateJourneyInsights(repoId, journey, false);
+        }
+      } catch (err) {
+        console.error(`[pipeline-worker] Failed to queue AI insights:`, err);
+      }
       return;
     }
-
-    if (status === "journey") {
-      const isDone = await checkAnalyticsDone(repoId, ["journey"]);
-      if (!isDone) {
-        // Not done yet, just touch updated_at
-        await supabase.from("repositories").update({ updated_at: new Date().toISOString() }).eq("id", repoId);
-        return;
+      
+    if (status === "ai_generation") {
+      // Check if insights is done
+      const { data: insights } = await supabase.from("repository_insights").select("status").eq("repository_id", repoId).maybeSingle();
+      const isStoryDone = insights && (insights.status === "completed" || insights.status === "error");
+      
+      const { total_commits } = await supabase.from("repositories").select("total_commits").eq("id", repoId).single().then(r => r.data || { total_commits: 0 });
+      // Risk is deferred, so we just wait for Story to be done
+      const isRiskDone = true;
+      
+      if (!isStoryDone) {
+         // Recompute state for accurate progress without transitioning
+         const { computePipelineState } = require("../services/pipeline-state-service");
+         await computePipelineState(repoId, "ai_generation", 100, total_commits);
+         
+         await supabase.from("repositories").update({ updated_at: new Date().toISOString() }).eq("id", repoId);
+         return;
       }
-
-      console.log(`[pipeline-worker] Journey complete for ${repoId}. Pipeline fully ready.`);
-      // Stage 8: ready
+      
+      console.log(`[pipeline-worker] AI Generation complete for ${repoId}. Pipeline fully ready.`);
       await updateStatus("ready");
 
       const { data: run } = await supabase.from("repository_pipeline_runs")
@@ -206,10 +247,13 @@ async function runPipelineSlice(repoId: string, url: string, status: string) {
         .maybeSingle();
         
       if (run) {
+        const totalDuration = Math.round(performance.now() - tPipelineStart);
         await supabase.from("repository_pipeline_runs").update({
           status: "completed",
-          completed_at: new Date().toISOString()
+          completed_at: new Date().toISOString(),
+          total_duration_ms: totalDuration
         }).eq("id", run.id);
+        console.log(`[pipeline-worker] [TIMING] Pipeline completed in ${totalDuration}ms for repo ${repoId}`);
       }
       
       console.log(`[pipeline-worker] Pipeline complete for ${repoId}`);

@@ -187,6 +187,36 @@ repoRoutes.get("/:id", async (req, res, next) => {
   }
 });
 
+// GET /api/repos/:id/progress — Get live pipeline state
+repoRoutes.get("/:id/progress", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { data: repo, error } = await supabase
+      .from("repositories")
+      .select("pipeline_state")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!repo) throw createAppError("Repository not found", 404);
+
+    if (repo.pipeline_state) {
+      res.json(repo.pipeline_state);
+    } else {
+      // Fallback if not initialized yet
+      res.json({
+        overall_progress: 0,
+        completed_stages: [],
+        running_stages: [],
+        pending_stages: ["clone", "fetch", "indexing", "journey", "analytics", "story", "risk"],
+        estimated_activity: "Initializing analysis..."
+      });
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/repos/:id/health — Get detailed pipeline and repository health
 repoRoutes.get("/:id/health", async (req, res, next) => {
   try {
@@ -471,6 +501,37 @@ repoRoutes.get("/:id/journey/insights", insightsLimiter, async (req: Request<{ i
   } catch (err: any) {
     console.error(`[Repository Journey Insights] ERROR: GET /:id/journey/insights. Total Duration: ${performance.now() - t0}ms. Stack:`, err.stack);
     next(err);
+  }
+});
+
+import { streamJourneyInsights } from "../services/stream-insights-service";
+
+// GET /api/repos/:id/journey/insights/stream — Server-Sent Events stream for AI Story
+repoRoutes.get("/:id/journey/insights/stream", insightsLimiter, async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const forceRefresh = req.query.refresh === 'true';
+
+    // Set SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    // The stream service needs the journey data
+    const { data: journeyData } = await getCachedAnalytics(id, "journey");
+    
+    if (!journeyData || !Object.keys(journeyData).length) {
+      res.write(`data: ${JSON.stringify({ error: "Journey data not yet available for streaming" })}\n\n`);
+      res.end();
+      return;
+    }
+
+    await streamJourneyInsights(id, journeyData as any, res, forceRefresh);
+  } catch (err) {
+    console.error(`[Repository Journey Stream] ERROR:`, err);
+    res.write(`data: ${JSON.stringify({ error: "Failed to initialize stream" })}\n\n`);
+    res.end();
   }
 });
 
