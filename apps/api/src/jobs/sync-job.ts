@@ -31,6 +31,11 @@ async function runSyncPipeline(repoId: string, url: string, githubToken?: string
   // Remember previous status so we can restore it after sync
   const previousStatus = repo.status;
 
+  // Immediately indicate progress if we were in a failed/queued state
+  if (["failed", "queued"].includes(repo.status)) {
+    await supabase.from("repositories").update({ status: "fetching_commits", error_message: null }).eq("id", repoId);
+  }
+
   try {
     const tPipelineStart = performance.now();
 
@@ -89,7 +94,7 @@ async function runSyncPipeline(repoId: string, url: string, githubToken?: string
     // 6. Fire-and-forget Event-Driven Verification
     if (finalStatus === "verifying") {
       const { runAsyncVerification } = require("../services/sync-engine");
-      runAsyncVerification(repoId, targetDir, newTotalCommits).catch((err: any) => {
+      runAsyncVerification(repoId, targetDir, newTotalCommits, undefined, undefined, true).catch((err: any) => {
         console.error(`[chronocode-api] Unhandled error triggering async verification for ${repoId}:`, err);
       });
     }

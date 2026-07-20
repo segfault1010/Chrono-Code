@@ -39,6 +39,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={`${classes} ${className}`}
+        suppressHydrationWarning
         {...props}
       >
         {isLoading ? (

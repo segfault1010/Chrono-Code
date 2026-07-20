@@ -623,7 +623,7 @@ export default function RepoPage() {
               variant={isSaved ? "secondary" : "primary"}
               onClick={handleSaveToggle}
               isLoading={isSaving}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-lg transition-all duration-300 h-9 px-4 text-sm font-bold ${isSaved ? "bg-white/5 border border-white/10 text-white hover:bg-white/10" : "bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"}`}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-lg h-9 px-4 text-sm font-bold"
             >
               {isSaved ? (
                 <>

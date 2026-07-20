@@ -141,7 +141,7 @@ async function runIndexingPipeline(repoId: string, url: string, githubToken?: st
 
     // 9. Fire-and-forget Event-Driven Verification
     const { runAsyncVerification } = require("../services/sync-engine");
-    runAsyncVerification(repoId, targetDir, totalCommits, runId, tPipelineStart).catch((err: any) => {
+    runAsyncVerification(repoId, targetDir, totalCommits, runId, tPipelineStart, true).catch((err: any) => {
       console.error(`[chronocode-api] Unhandled error triggering async verification for ${repoId}:`, err);
     });
 

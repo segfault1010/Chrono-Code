@@ -103,8 +103,8 @@ try {
 }
 
 async function resetOrphanedJobs() {
-  console.log("[pipeline-worker] resetOrphanedJobs: Starting phase 1 (resetting queued/cloning/indexing to failed)...");
-  const { data: phase1Data, error: phase1Err, count: phase1Count } = await supabase.from("repositories").update({ status: "failed", error_message: "Indexing aborted due to server restart." }).in("status", ["queued", "cloning", "indexing"]).select("id");
+  console.log("[pipeline-worker] resetOrphanedJobs: Starting phase 1 (resetting queued/cloning/fetching_commits/indexing/verifying to failed)...");
+  const { data: phase1Data, error: phase1Err, count: phase1Count } = await supabase.from("repositories").update({ status: "failed", error_message: "Indexing aborted due to server restart." }).in("status", ["queued", "cloning", "fetching_commits", "indexing", "verifying"]).select("id");
   
   console.log(`[pipeline-worker] resetOrphanedJobs: Phase 1 complete. Affected rows: ${phase1Data?.length || 0}. Error: ${phase1Err ? JSON.stringify(phase1Err) : 'none'}`);
   if (phase1Err) {

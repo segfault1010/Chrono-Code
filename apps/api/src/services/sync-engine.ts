@@ -226,33 +226,59 @@ export async function verifyRepositorySync(repoId: string, targetDir: string, gi
  * Executes verification fully asynchronously as an event-driven background job.
  * Transitions the repository from 'verifying' to 'ready' (or 'verification_failed').
  */
-export async function runAsyncVerification(repoId: string, targetDir: string, githubTotalCommits: number, runId?: string, tPipelineStart?: number) {
+export async function runAsyncVerification(
+  repoId: string, 
+  targetDir: string, 
+  githubTotalCommits: number, 
+  runId?: string, 
+  tPipelineStart?: number, 
+  shouldTransitionToReady: boolean = false
+) {
+  const WATCHDOG_TIMEOUT_MS = 60000; // 60 seconds
+  
   try {
-    console.log(`[sync-engine] Starting async verification for ${repoId}...`);
+    console.log(`[sync-engine] Starting async verification for ${repoId}... (Terminal transition: ${shouldTransitionToReady})`);
     const t0 = performance.now();
-    const verification = await verifyRepositorySync(repoId, targetDir, githubTotalCommits);
+    
+    // Wrap verifyRepositorySync in a Promise.race for the watchdog timeout
+    const verificationPromise = exports.verifyRepositorySync(repoId, targetDir, githubTotalCommits);
+    const timeoutPromise = new Promise<{isValid: boolean, reason: string}>((_, reject) => 
+      setTimeout(() => reject(new Error("Verification Watchdog Timeout: Process took too long.")), WATCHDOG_TIMEOUT_MS)
+    );
+    
+    const verification = await Promise.race([verificationPromise, timeoutPromise]);
     const durationMs = Math.round(performance.now() - t0);
     
     if (verification.isValid) {
-      console.log(`[sync-engine] Verification successful for ${repoId} in ${durationMs}ms. Marking as ready.`);
+      console.log(`[sync-engine] [Profiling] Verification successful for ${repoId} in ${durationMs}ms.`);
       await supabase
         .from("repositories")
         .update({ 
           verification_status: "passed",
           verification_reason: null,
-          error_message: null 
+          error_message: null,
+          ...(shouldTransitionToReady ? { status: "ready" } : {})
         })
         .eq("id", repoId);
+      
+      if (shouldTransitionToReady) {
+        console.log(`[sync-engine] Terminated state machine: Transitioned ${repoId} to 'ready'`);
+      }
     } else {
-      console.warn(`[sync-engine] WARNING: Sync verification failed for ${repoId} in ${durationMs}ms. Reason: ${verification.reason}`);
+      console.warn(`[sync-engine] [Profiling] WARNING: Sync verification failed for ${repoId} in ${durationMs}ms. Reason: ${verification.reason}`);
       await supabase
         .from("repositories")
         .update({ 
           verification_status: "failed",
           verification_reason: verification.reason,
-          error_message: null 
+          error_message: null,
+          ...(shouldTransitionToReady ? { status: "failed" } : {})
         })
         .eq("id", repoId);
+
+      if (shouldTransitionToReady) {
+        console.log(`[sync-engine] Terminated state machine: Transitioned ${repoId} to 'failed'`);
+      }
     }
 
     if (runId) {
@@ -269,14 +295,19 @@ export async function runAsyncVerification(repoId: string, targetDir: string, gi
     }
 
   } catch (err) {
-    console.error(`[sync-engine] Fatal error running async verification for ${repoId}:`, err);
+    console.error(`[sync-engine] Verification threw error for ${repoId}:`, err);
     await supabase
       .from("repositories")
       .update({ 
         verification_status: "failed",
-        verification_reason: `Fatal error: ${err instanceof Error ? err.message : String(err)}` 
+        verification_reason: `Fatal error: ${err instanceof Error ? err.message : String(err)}`,
+        ...(shouldTransitionToReady ? { status: "failed" } : {})
       })
       .eq("id", repoId);
+      
+    if (shouldTransitionToReady) {
+      console.log(`[sync-engine] Terminated state machine due to exception: Transitioned ${repoId} to 'failed'`);
+    }
       
     if (runId) {
       await supabase
