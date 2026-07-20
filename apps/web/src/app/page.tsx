@@ -101,7 +101,8 @@ export default function Home() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               disabled={isLoading}
-              className="flex-1 bg-transparent border-none outline-none text-white text-lg px-2 placeholder:text-zinc-500 transition-all duration-500 font-medium w-full"
+              aria-label="GitHub Repository URL"
+              className="flex-1 bg-transparent border-none outline-none focus:ring-2 focus:ring-purple-500/50 rounded-lg text-white text-lg px-2 placeholder:text-zinc-500 transition-all duration-500 font-medium w-full"
             />
             
             <button
@@ -254,7 +255,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* AI Summary */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors group">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <span className="text-2xl">✨</span>
             </div>
             <h3 className="text-lg font-bold text-white mb-2">AI Summary</h3>
@@ -263,7 +264,7 @@ export default function Home() {
           
           {/* Interactive Timeline */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors group">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <span className="text-2xl">📈</span>
             </div>
             <h3 className="text-lg font-bold text-white mb-2">Interactive Timeline</h3>
@@ -281,7 +282,7 @@ export default function Home() {
           
           {/* Contributor Analytics */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors group">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <span className="text-2xl">👥</span>
             </div>
             <h3 className="text-lg font-bold text-white mb-2">Contributor Analytics</h3>

@@ -28,8 +28,10 @@ export function Navbar() {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
+    if (window.confirm("Are you sure you want to sign out?")) {
+      await supabase.auth.signOut();
+      router.push("/");
+    }
   };
 
   const isRepoPage = pathname?.startsWith("/repos/");
