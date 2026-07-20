@@ -241,7 +241,7 @@ export async function runAsyncVerification(
     const t0 = performance.now();
     
     // Wrap verifyRepositorySync in a Promise.race for the watchdog timeout
-    const verificationPromise = exports.verifyRepositorySync(repoId, targetDir, githubTotalCommits);
+    const verificationPromise = verifyRepositorySync(repoId, targetDir, githubTotalCommits);
     const timeoutPromise = new Promise<{isValid: boolean, reason: string}>((_, reject) => 
       setTimeout(() => reject(new Error("Verification Watchdog Timeout: Process took too long.")), WATCHDOG_TIMEOUT_MS)
     );
