@@ -92,8 +92,8 @@ githubMetaRoutes.get("/:id/github-meta", async (req, res, next) => {
           
           const scrapedMeta = {
             description: null,
-            stars: starsMatch ? parseInt(starsMatch[1].replace(/,/g, '')) || 0 : 0,
-            forks: forksMatch ? parseInt(forksMatch[1].replace(/,/g, '')) || 0 : 0,
+            stars: starsMatch && starsMatch[1] ? parseInt(starsMatch[1].replace(/,/g, '')) || 0 : 0,
+            forks: forksMatch && forksMatch[1] ? parseInt(forksMatch[1].replace(/,/g, '')) || 0 : 0,
             language: null,
             avatar_url: `https://github.com/${repo.owner}.png`,
             topics: [],
