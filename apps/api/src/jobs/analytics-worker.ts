@@ -1,5 +1,6 @@
 import { supabase } from "../lib/db";
 import { computeAnalytics, AnalyticsType } from "../services/analytics-pipeline";
+import { executeWithTimeout } from "../lib/async-timeout";
 
 let isRunning = false;
 let workerInterval: NodeJS.Timeout | null = null;
@@ -43,7 +44,45 @@ export function startAnalyticsWorker() {
           console.error(`[analytics-worker] Failed to transition job to computing:`, updateErr);
         } else {
            console.log(`[analytics-worker] Status updated to 'computing' for ${job.analytics_type}`);
-           await computeAnalytics(job.repo_id, job.analytics_type as AnalyticsType, job.last_commit_sha);
+           
+           const result = await executeWithTimeout(
+             { timeoutMs: 5 * 60 * 1000, retries: 2, taskName: `Analytics-${job.analytics_type}`, repoId: job.repo_id },
+             async () => {
+               // 1. Stale write prevention check
+               const { data: repo } = await supabase
+                 .from("repositories")
+                 .select("last_indexed_sha")
+                 .eq("id", job.repo_id)
+                 .single();
+                 
+               if (!repo || repo.last_indexed_sha !== job.last_commit_sha) {
+                 throw new Error("StaleWritePrevention: Repository has been re-indexed since this job was queued. Discarding job.");
+               }
+               
+               // 2. Compute
+               await computeAnalytics(job.repo_id, job.analytics_type as AnalyticsType, job.last_commit_sha);
+             }
+           );
+           
+           if (result.status !== "success") {
+             // computeAnalytics already sets it to 'failed' on error internally, but let's be absolutely sure here for timeouts
+             await supabase
+               .from("repository_analytics")
+               .update({ status: "failed", error_message: result.error?.message || "Task failed or timed out" })
+               .eq("repo_id", job.repo_id)
+               .eq("analytics_type", job.analytics_type);
+           } else {
+             // If this was journey analytics, queue Repository Story (Insights)
+             if (job.analytics_type === "journey") {
+               console.log(`[analytics-worker] Journey complete for ${job.repo_id}. Queuing Repository Story.`);
+               await supabase
+                 .from("repository_insights")
+                 .upsert({
+                   repo_id: job.repo_id,
+                   status: "queued"
+                 }, { onConflict: "repo_id" });
+             }
+           }
         }
       }
     } catch (err) {

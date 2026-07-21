@@ -255,12 +255,28 @@ export default function RepoPage() {
     }
   }, [repoId]);
 
-  // Refetch journey when repo transitions to ready
+  // Refetch journey independently while it is not ready
   useEffect(() => {
-    if (repo?.status === "ready" && !journey?.milestones?.length) {
-      fetchJourneyData();
+    if (!repo) return;
+    // Don't poll if repository is still indexing commits
+    const indexingStatuses = ["queued", "cloning", "fetching_commits", "indexing", "indexing_history"];
+    if (indexingStatuses.includes(repo.status)) return;
+
+    let pollInterval: NodeJS.Timeout;
+    
+    const checkJourney = async () => {
+      await fetchJourneyData();
+    };
+
+    // If journey isn't fetched yet or still computing/pending, poll every 3s
+    if (!journey || (journey._meta?.status && !["ready", "completed", "failed", "error"].includes(journey._meta.status))) {
+       pollInterval = setInterval(checkJourney, 3000);
     }
-  }, [repo?.status]);
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [repo?.status, journey?._meta?.status, fetchJourneyData]);
 
   const loadCommits = async (pageNumber: number) => {
     try {

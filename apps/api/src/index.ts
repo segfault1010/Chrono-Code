@@ -38,6 +38,13 @@ try {
     console.error("[chronocode-api] FATAL: GEMINI_API_KEY is not set.");
     process.exit(1);
   }
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("[chronocode-api] FATAL: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set.");
+    process.exit(1);
+  }
+  if (!process.env.GITHUB_TOKEN) {
+    console.warn("[chronocode-api] WARNING: GITHUB_TOKEN is not set. You may encounter rate limits or be unable to clone private repositories.");
+  }
   if (!process.env.NODE_ENV) {
     console.warn("[chronocode-api] WARNING: NODE_ENV is not set, defaulting to development.");
   }
@@ -104,13 +111,17 @@ try {
 
 async function resetOrphanedJobs() {
   console.log("[pipeline-worker] resetOrphanedJobs: Starting phase 1 (resetting queued/cloning/fetching_commits/indexing/verifying to failed)...");
-  const { data: phase1Data, error: phase1Err, count: phase1Count } = await supabase.from("repositories").update({ status: "failed", error_message: "Indexing aborted due to server restart." }).in("status", ["queued", "cloning", "fetching_commits", "indexing", "verifying"]).select("id");
+  const { data: phase1Data, error: phase1Err, count: phase1Count } = await supabase.from("repositories").update({ status: "failed", error_message: "Indexing aborted due to server restart." }).in("status", ["cloning", "fetching_commits", "indexing", "verifying"]).select("id");
   
   console.log(`[pipeline-worker] resetOrphanedJobs: Phase 1 complete. Affected rows: ${phase1Data?.length || 0}. Error: ${phase1Err ? JSON.stringify(phase1Err) : 'none'}`);
   if (phase1Err) {
     console.error("[pipeline-worker] FATAL: resetOrphanedJobs Phase 1 failed:", phase1Err);
     throw phase1Err;
   }
+
+  console.log("[pipeline-worker] resetOrphanedJobs: Starting phase 1.5 (migrating legacy AI states to ready)...");
+  const { data: legacyData, error: legacyErr } = await supabase.from("repositories").update({ status: "ready" }).in("status", ["journey", "analytics", "ai_generation"]).select("id");
+  console.log(`[pipeline-worker] resetOrphanedJobs: Phase 1.5 complete. Migrated ${legacyData?.length || 0} legacy jobs to ready.`);
 
   console.log("[pipeline-worker] resetOrphanedJobs: Starting phase 2 (fetching indexing_history)...");
   const { data: resumable, error: phase2Err } = await supabase.from("repositories").select("id, github_url").eq("status", "indexing_history");
@@ -131,6 +142,7 @@ async function resetOrphanedJobs() {
 
 import { startAnalyticsWorker } from "./jobs/analytics-worker";
 import { startPipelineWorker } from "./jobs/pipeline-worker";
+import { startInsightsWorker } from "./jobs/insights-worker";
 
 console.log("5. about to listen");
 function bootstrap() {
@@ -149,12 +161,10 @@ function bootstrap() {
           console.log("Starting orphaned job recovery...");
           await resetOrphanedJobs();
 
-          console.log("8. analytics worker");
-          console.log("Starting analytics worker...");
+          console.log("8. background workers");
+          console.log("Starting background workers...");
           startAnalyticsWorker();
-
-          console.log("9. pipeline worker");
-          console.log("Starting pipeline worker...");
+          startInsightsWorker();
           startPipelineWorker();
 
           console.log("Startup complete.");

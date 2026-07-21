@@ -20,7 +20,7 @@ import { requireAuth, AuthenticatedRequest } from "../middleware/auth-middleware
 import { getFunctionHistory } from "../services/function-service";
 import { getCachedAnalytics } from "../services/analytics-pipeline";
 import * as path from "path";
-
+import { CLONE_BASE_PATH } from "../config/paths";
 export const repoRoutes = Router();
 
 // GET /api/repos/:id/search — Semantic search for commits
@@ -232,7 +232,6 @@ repoRoutes.get("/:id/health", async (req, res, next) => {
     if (error) throw error;
     if (!repo) throw createAppError("Repository not found", 404);
 
-    const CLONE_BASE_PATH = "/tmp/chronocode";
     const repoPath = path.resolve(CLONE_BASE_PATH, repo.owner, repo.name);
 
     // Get metrics
@@ -430,7 +429,6 @@ repoRoutes.get("/:id/functions/history", async (req, res, next) => {
     if (error) throw error;
     if (!repo) throw createAppError("Repository not found", 404);
 
-    const CLONE_BASE_PATH = "/tmp/chronocode";
     const repoPath = path.resolve(CLONE_BASE_PATH, repo.owner, repo.name);
 
     const history = await getFunctionHistory(repoPath, filePath, functionName);

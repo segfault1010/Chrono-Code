@@ -67,10 +67,10 @@ export default function Home() {
       {/* Grid Pattern Overlay for Texture */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none animate-[fadeIn_2s_ease-out_forwards]"></div>
 
-      <div className="relative z-10 w-full max-w-[1400px] px-6 lg:px-8 flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16 animate-[fadeInUp_1s_ease-out_forwards] pt-16 lg:pt-24 pb-12 lg:pb-0">
+      <div className="relative z-10 w-full max-w-[1800px] px-6 lg:px-12 xl:px-20 flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16 animate-[fadeInUp_1s_ease-out_forwards] pt-16 lg:pt-24 pb-12 lg:pb-0">
         
         {/* Left Column */}
-        <div className="w-full lg:w-[45%] xl:w-[42%] flex-shrink-0 flex flex-col items-center lg:items-start text-center lg:text-left">
+        <div className="w-full lg:w-[48%] xl:w-[48%] flex-shrink-0 flex flex-col items-center lg:items-start text-center lg:text-left">
         
         {/* Main Hero Header */}
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight text-white mb-8">

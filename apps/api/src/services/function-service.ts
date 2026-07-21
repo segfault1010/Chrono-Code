@@ -2,6 +2,7 @@ import simpleGit from "simple-git";
 import { createAppError } from "../middleware/error-handler";
 import type { FunctionHistoryNode } from "@chronocode/shared-types/src/api";
 
+import { CLONE_BASE_PATH } from "../config/paths";
 export async function getFunctionHistory(repoPath: string, filePath: string, functionName: string): Promise<FunctionHistoryNode[]> {
   const git = simpleGit(repoPath);
   

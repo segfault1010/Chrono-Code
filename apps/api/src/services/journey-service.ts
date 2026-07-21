@@ -5,8 +5,7 @@ import { promisify } from "util";
 import * as path from "path";
 
 const execAsync = promisify(exec);
-const CLONE_BASE_PATH = "/tmp/chronocode";
-
+import { CLONE_BASE_PATH } from "../config/paths";
 const MAX_MILESTONES = 200; // Cap to avoid overwhelming UI
 
 export async function generateRepositoryJourney(repoId: string): Promise<RepositoryJourney> {
@@ -154,21 +153,19 @@ export async function generateRepositoryJourney(repoId: string): Promise<Reposit
 
   // Enhance milestones with exact git diff stats (since we don't store them in DB for all 100k commits)
   if (targetDir) {
-    await Promise.all(
-      finalMilestones.map(async (m) => {
-        try {
-          const { stdout } = await execAsync(`git show --shortstat ${m.sha}`, { cwd: targetDir });
-          const filesMatch = stdout.match(/(\d+)\s+file/);
-          const insertionsMatch = stdout.match(/(\d+)\s+insertion/);
-          const deletionsMatch = stdout.match(/(\d+)\s+deletion/);
-          m.files_changed = filesMatch ? parseInt(filesMatch[1] || "0", 10) : 0;
-          m.insertions = insertionsMatch ? parseInt(insertionsMatch[1] || "0", 10) : 0;
-          m.deletions = deletionsMatch ? parseInt(deletionsMatch[1] || "0", 10) : 0;
-        } catch (e) {
-          // Ignore failures, just leave empty
-        }
-      })
-    );
+    for (const m of finalMilestones) {
+      try {
+        const { stdout } = await execAsync(`git show --shortstat ${m.sha}`, { cwd: targetDir });
+        const filesMatch = stdout.match(/(\d+)\s+file/);
+        const insertionsMatch = stdout.match(/(\d+)\s+insertion/);
+        const deletionsMatch = stdout.match(/(\d+)\s+deletion/);
+        m.files_changed = filesMatch ? parseInt(filesMatch[1] || "0", 10) : 0;
+        m.insertions = insertionsMatch ? parseInt(insertionsMatch[1] || "0", 10) : 0;
+        m.deletions = deletionsMatch ? parseInt(deletionsMatch[1] || "0", 10) : 0;
+      } catch (e) {
+        // Ignore failures, just leave empty
+      }
+    }
   }
   milestoneGenerationDuration += (performance.now() - tProcessStart);
   console.log(`[Journey] Milestone generation: ${Math.round(milestoneGenerationDuration)}ms`);

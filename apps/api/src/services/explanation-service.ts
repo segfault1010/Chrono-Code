@@ -5,8 +5,7 @@ import { createAppError } from "../middleware/error-handler";
 import * as path from "path";
 import { sanitizeSecrets } from "../lib/sanitize";
 
-const CLONE_BASE_PATH = "/tmp/chronocode";
-
+import { CLONE_BASE_PATH } from "../config/paths";
 export interface ExplanationResponse {
   sha: string;
   explanation: string;

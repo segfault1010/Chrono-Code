@@ -6,7 +6,15 @@ import { promisify } from "util";
 import { createAppError } from "../middleware/error-handler";
 
 const execAsync = promisify(exec);
-const CLONE_BASE_PATH = "/tmp/chronocode";
+import { CLONE_BASE_PATH } from "../config/paths";
+
+const withTimeout = <T>(promise: Promise<T>, ms: number, errorMsg: string): Promise<T> => {
+  let timeoutId: NodeJS.Timeout;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(errorMsg)), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
+};
 
 export async function validateGithubUrl(rawUrl: string): Promise<{ owner: string; name: string; normalizedUrl: string }> {
   console.log(`[Validation] Raw input: "${rawUrl}"`);
@@ -103,7 +111,11 @@ export async function cloneRepo(url: string, githubToken?: string): Promise<stri
     // --single-branch ensures we don't fetch all branches/tags
     // NOTE: We do NOT use --depth here. Full history is required for progressive indexing.
     //   The blobless filter keeps it fast — ~5-8s for facebook/react (26k commits).
-    await git.clone(cloneUrl, targetDir, ["--bare", "--single-branch", "--filter=blob:none"]);
+    await withTimeout(
+      git.clone(cloneUrl, targetDir, ["--bare", "--single-branch", "--filter=blob:none"]),
+      5 * 60 * 1000, // 5 minutes
+      "Git Clone Watchdog Timeout: Process took too long."
+    );
     console.log(`[chronocode-api] Clone complete for ${url}`);
   } catch (err: any) {
     // Cleanup on failure
@@ -182,7 +194,11 @@ export async function getDefaultBranch(repoPath: string): Promise<string> {
 export async function fetchLatest(repoPath: string, githubToken?: string): Promise<string> {
   try {
     const git = simpleGit(repoPath);
-    await git.fetch(["origin", "+refs/heads/*:refs/heads/*", "--prune"]);
+    await withTimeout(
+      git.fetch(["origin", "+refs/heads/*:refs/heads/*", "--prune"]),
+      2 * 60 * 1000, // 2 minutes
+      "Git Fetch Watchdog Timeout: Process took too long."
+    );
   } catch (err) {
     console.warn("[chronocode-api] Failed to fetch latest:", err);
   }
