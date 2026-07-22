@@ -15,7 +15,7 @@ const aiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-riskRoutes.get("/:id/risk-analysis", aiLimiter, async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+riskRoutes.get("/:id/risk-analysis", requireAuth, aiLimiter, async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const range = req.query.range as string || "last_50";

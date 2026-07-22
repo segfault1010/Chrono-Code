@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { Button } from "./ui/Button";
 
 interface RiskAnalysisProps {
@@ -131,8 +132,8 @@ export function RiskAnalysis({ repoId }: RiskAnalysisProps) {
       {(markdown || isGenerating) && !error && (
         <div className="bg-[#1a0f0f]/80 backdrop-blur-2xl p-6 sm:p-10 rounded-3xl border border-orange-500/30 shadow-inner relative overflow-hidden">
           <div 
-            className="prose prose-invert max-w-none text-[var(--color-text-secondary)] prose-headings:text-white prose-headings:tracking-tight prose-a:text-orange-400 prose-li:my-1 prose-strong:text-orange-100 prose-pre:bg-white/5 prose-pre:border prose-pre:border-orange-500/20"
-            dangerouslySetInnerHTML={{ __html: parsedHtml }}
+            className="prose prose-invert max-w-none text-[var(--color-text-secondary)] prose-headings:text-white prose-headings:tracking-tight prose-a:text-[var(--color-accent-primary)] prose-li:my-1 prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedHtml) }}
           />
           {isGenerating && (
              <div className="mt-6 flex items-center gap-3 text-orange-500 animate-pulse text-sm font-medium">

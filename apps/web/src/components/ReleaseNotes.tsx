@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { Button } from "./ui/Button";
 
 interface ReleaseNotesProps {
@@ -132,7 +133,7 @@ export function ReleaseNotes({ repoId }: ReleaseNotesProps) {
         <div className="bg-[#0f0f0f]/80 backdrop-blur-2xl p-6 sm:p-10 rounded-3xl border border-white/10 shadow-inner">
           <div 
             className="prose prose-invert max-w-none text-[var(--color-text-secondary)] prose-headings:text-white prose-headings:tracking-tight prose-a:text-[var(--color-accent-primary)] prose-li:my-1 prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10"
-            dangerouslySetInnerHTML={{ __html: parsedHtml }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedHtml) }}
           />
           {isGenerating && (
              <div className="mt-6 flex items-center gap-3 text-[var(--color-accent-primary)] animate-pulse text-sm font-medium">

@@ -2,6 +2,10 @@
 
 import { useEffect, useState, useRef, useCallback, lazy, Suspense } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+import { format, formatDistanceToNow } from "date-fns";
 import { api } from "../../../lib/api";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
@@ -1017,7 +1021,7 @@ export default function RepoPage() {
                             </div>
                           ) : explanations[commit.sha] ? (
                             <div className="prose prose-sm sm:prose-base prose-invert max-w-none text-[var(--color-text-secondary)] leading-relaxed">
-                              <div dangerouslySetInnerHTML={{ __html: explanations[commit.sha].explanation.replace(/\n/g, "<br/>") }} />
+                              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(explanations[commit.sha].explanation.replace(/\n/g, "<br/>")) }} />
                               <div className="mt-4 flex justify-end">
                                 <span className="text-[10px] sm:text-xs font-mono text-[var(--color-text-tertiary)] flex items-center gap-1.5 opacity-70">
                                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>

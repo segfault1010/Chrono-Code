@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, memo, useRef } from "react";
+import { Loader2 } from "lucide-react";
+import DOMPurify from "dompurify";
 import { api } from "../lib/api";
 import { SSEParser } from "../lib/sse-parser";
 import { StoryParagraphSkeleton } from "./ui/ContextualSkeleton";
@@ -458,7 +460,7 @@ const MemoizedChapter = memo(function MemoizedChapter({
       return (
         <p
           key={li}
-          dangerouslySetInnerHTML={{ __html: rendered }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(rendered) }}
         />
       );
     });

@@ -4,10 +4,12 @@ import { supabase } from "../lib/db";
 import { createAppError } from "../middleware/error-handler";
 import { getCachedAnalytics } from "../services/analytics-pipeline";
 
+import { requireAuth } from "../middleware/auth-middleware";
+
 export const analyticsRoutes = Router({ mergeParams: true });
 
 // GET /api/analytics/:id — Get repository analytics
-analyticsRoutes.get("/:id", async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+analyticsRoutes.get("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 

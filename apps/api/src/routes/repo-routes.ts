@@ -70,7 +70,6 @@ repoRoutes.post("/", async (req, res, next) => {
 
     const { owner, name, normalizedUrl } = await validateGithubUrl(url);
 
-    console.log(`[POST /api/repos] Supabase Client Config - URL: ${process.env.SUPABASE_URL}, Service Key Length: ${process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0}`);
     console.log(`[POST /api/repos] Checking if repository already exists...`);
 
     // Idempotency: Check if repository already exists
