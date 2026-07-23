@@ -1,5 +1,5 @@
 import { supabase } from "../lib/db";
-import { model, embeddingModel } from "../lib/gemini";
+import { flashModel, embeddingModel } from "../lib/gemini";
 import { getCommitDiff } from "./diff-service";
 import { createAppError } from "../middleware/error-handler";
 import * as path from "path";
@@ -107,7 +107,7 @@ ${diff}
   const prompt = sanitizeSecrets(rawPrompt);
 
   try {
-    const resultStream = await model.generateContentStream(prompt);
+    const resultStream = await flashModel.generateContentStream(prompt);
     let fullText = "";
 
     for await (const chunk of resultStream.stream) {
@@ -117,7 +117,7 @@ ${diff}
       res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
     }
 
-    const model_id = "gemini-3.1-flash-lite";
+    const model_id = "gemini-3.6-flash";
 
     // 6. Save to cache asynchronously, including vector embedding
     (async () => {

@@ -1,5 +1,5 @@
 import { supabase } from "../lib/db";
-import { model } from "../lib/gemini";
+import { flashModel } from "../lib/gemini";
 import type { Response } from "express";
 import { sanitizeSecrets } from "../lib/sanitize";
 
@@ -65,7 +65,7 @@ export async function streamRiskAnalysis(repoId: string, range: string, res: Res
     const rawPrompt = `${SYSTEM_PROMPT}\n\n=== Raw Commits ===\n${commitList}\n\nPlease generate the Risk Analysis Report:`;
     const prompt = sanitizeSecrets(rawPrompt);
 
-    const resultStream = await model.generateContentStream(prompt);
+    const resultStream = await flashModel.generateContentStream(prompt);
     
     for await (const chunk of resultStream.stream) {
       const chunkText = chunk.text();
